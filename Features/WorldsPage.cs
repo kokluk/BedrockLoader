@@ -13,13 +13,33 @@ public sealed partial class MainForm
         contentHost.Controls.Add(actions);
 
         if (!cinnabarMode) actions.Controls.Add(MakeButton(T("Import world", "Dünya içe aktar"), ImportWorld, 155));
+        SymbolButton? selected = null;
+        string? selectedFolder = null;
+        string? selectedTitle = null;
+        var export = MakeButton(T("Export", "Dışa aktar"), async () =>
+        {
+            var folder = selectedFolder;
+            if (folder == null) return;
+            if (!BedrockSkinSource.IsGameClosed())
+            {
+                ShowThemedPopup(T("Close Minecraft", "Minecraft’ı kapat"),
+                    T("Close Minecraft before exporting a world.", "Dünyayı dışa aktarmadan önce Minecraft’ı kapat."));
+                return;
+            }
+            await ExportSelectionAsync(selectedTitle ?? "world", "mcworld", archive => WriteExportFolder(archive, folder), [folder]);
+        }, 135, "download");
+        export.Visible = false;
         actions.Controls.Add(MakeButton(T("Refresh", "Yenile"), LoadWorlds, 95));
+        actions.Controls.Add(export);
         AddPageHeading(T("Worlds", "Dünyalar"), cinnabarMode ? T("Browse Cinnabar local worlds.", "Cinnabar’ın yerel dünyalarını görüntüle.") : T("Browse your worlds and import downloaded .mcworld files.", "Dünyalarını görüntüle ve indirdiğin .mcworld dosyalarını içe aktar."));
         if (!cinnabarMode) AddCurseForgeHeadingButton("CurseWorlds");
         LoadWorlds();
 
         void LoadWorlds()
         {
+            selected = null;
+            selectedFolder = selectedTitle = null;
+            export.Visible = false;
             while (grid.Controls.Count > 0) grid.Controls[0].Dispose();
             foreach (string root in cinnabarMode ? new[] { Path.Combine(CinnabarDataRoot(), "worlds") } : WorldRoots())
             {
@@ -96,6 +116,30 @@ public sealed partial class MainForm
             open.Outline = true;
             open.Bounds = new Rectangle(16, 121, 126, 29);
             card.Controls.AddRange([image, label, open]);
+            if (!cinnabarMode)
+            {
+                var check = new SymbolButton
+                {
+                    Symbol = "circle", Bounds = new Rectangle(123, 6, 28, 28), CornerRadius = 14,
+                    AccessibleName = T($"Select {title}", $"{title} dünyasını seç"), Cursor = Cursors.Hand
+                };
+                check.Click += (_, _) =>
+                {
+                    bool select = selected != check;
+                    if (selected != null)
+                    {
+                        selected.Symbol = "circle";
+                        selected.Invalidate();
+                    }
+                    selected = select ? check : null;
+                    selectedFolder = select ? folder : null;
+                    selectedTitle = select ? title : null;
+                    if (select) { check.Symbol = "status"; check.Invalidate(); }
+                    export.Visible = select;
+                };
+                card.Controls.Add(check);
+                check.BringToFront();
+            }
             grid.Controls.Add(card);
         }
     }

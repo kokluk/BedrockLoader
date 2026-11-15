@@ -29,19 +29,25 @@ public sealed partial class MainForm
             Padding = new Padding(1, 0, 1, 7);
             reveal.Tick += (_, _) =>
             {
+                if (Disposing || IsDisposed || !Visible) return;
                 double t = Math.Clamp(System.Diagnostics.Stopwatch.GetElapsedTime(openedAt).TotalMilliseconds / 190, 0, 1);
                 UpdateRegion(closing ? 1 - t : 1 - Math.Pow(1 - t, 3));
                 if (t >= 1)
                 {
                     reveal.Stop();
-                    if (closing) Close();
+                    if (closing && !IsDisposed && !Disposing && IsHandleCreated) Close();
                 }
             };
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) reveal.Dispose();
+            if (disposing)
+            {
+                afterClose = null;
+                reveal.Stop();
+                reveal.Dispose();
+            }
             base.Dispose(disposing);
         }
         readonly System.Windows.Forms.Timer reveal = new() { Interval = 15 };
@@ -53,7 +59,20 @@ public sealed partial class MainForm
         public void SelectAndClose(Action action)
         {
             if (Visible) afterClose = action;
-            else action();
+            else QueueSelection(action);
+        }
+
+        void QueueSelection(Action action)
+        {
+            if (ToggleOwner is { IsHandleCreated: true, IsDisposed: false, Disposing: false } trigger)
+                trigger.BeginInvoke(() => { if (!IsDisposed && !trigger.IsDisposed) action(); });
+        }
+
+        public void CloseFromHeader(Action action)
+        {
+            if (closing) return;
+            SelectAndClose(action);
+            if (Visible) Close();
         }
 
         protected override void OnOpened(EventArgs e)
@@ -68,18 +87,21 @@ public sealed partial class MainForm
         protected override void OnClosed(ToolStripDropDownClosedEventArgs e)
         {
             closing = false;
-            reveal.Stop();
-            UpdateRegion(1);
-            base.OnClosed(e);
             var action = afterClose;
             afterClose = null;
-            action?.Invoke();
+            if (!Disposing && !IsDisposed)
+            {
+                reveal.Stop();
+                UpdateRegion(1);
+            }
+            base.OnClosed(e);
+            if (action != null) QueueSelection(action);
         }
 
         protected override void OnClosing(ToolStripDropDownClosingEventArgs e)
         {
             base.OnClosing(e);
-            if (e.Cancel || closing || AnimatedRoundButton.ReducedMotion ||
+            if (Disposing || IsDisposed || e.Cancel || closing || AnimatedRoundButton.ReducedMotion ||
                 e.CloseReason is not (ToolStripDropDownCloseReason.ItemClicked or ToolStripDropDownCloseReason.CloseCalled or ToolStripDropDownCloseReason.Keyboard or ToolStripDropDownCloseReason.AppClicked)) return;
             e.Cancel = true;
             closing = true;
@@ -196,7 +218,7 @@ public sealed partial class MainForm
             menu.MinimumSize = new Size(Width, 0);
             menu.MaximumSize = new Size(Width, 0);
             var header = new ToolStripMenuItem(Text) { Tag = "selector-header", AutoSize = false, Size = new Size(Math.Max(Width - 2, 120), Height) };
-            header.Click += (_, _) => { menu.Close(); Focus(); };
+            header.Click += (_, _) => menu.CloseFromHeader(() => { if (!IsDisposed) Focus(); });
             menu.Items.Add(header);
             for (int i = 0; i < Items.Count; i++)
             {

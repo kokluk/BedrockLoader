@@ -42,9 +42,7 @@ public sealed partial class MainForm
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         var title = WrappedText(T("CurseForge connection", "CurseForge bağlantısı"), 16, true); title.Dock = DockStyle.Fill;
         var header = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Margin = Padding.Empty };
-        var close = new SymbolButton { Symbol = "close", Dock = DockStyle.Right, Width = 36, BackColor = SurfaceAlt, ForeColor = TextColor, CornerRadius = 18, AccessibleName = T("Close", "Kapat") };
-        close.Click += (_, _) => popup.DialogResult = DialogResult.Cancel;
-        header.Controls.Add(title); header.Controls.Add(close);
+        header.Controls.Add(title);
         var help = WrappedText(T("Enter your CurseForge API key. It is stored encrypted for your Windows account.", "CurseForge API anahtarını gir. Anahtar, Windows hesabın için şifrelenerek saklanır.")); help.Dock = DockStyle.Fill;
         var key = MakeTextBox(); key.UseSystemPasswordChar = true; key.Dock = DockStyle.Top; key.AccessibleName = "CurseForge API key";
         var actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };

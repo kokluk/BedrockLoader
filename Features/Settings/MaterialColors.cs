@@ -15,12 +15,24 @@ public sealed partial class MainForm
         ("Sky", "Sky", "Gökyüzü", Color.FromArgb(162, 205, 247)),
         ("Slate", "Slate", "Taş", Color.FromArgb(190, 199, 218))
     };
+    static readonly (string Id, string English, string Turkish, Color Color)[] BasicColors =
+    [
+        ("Red", "Red", "Kırmızı", Color.FromArgb(255, 91, 107)),
+        ("Blue", "Blue", "Mavi", Color.FromArgb(90, 157, 255)),
+        ("Yellow", "Yellow", "Sarı", Color.FromArgb(249, 209, 80)),
+        ("Green", "Green", "Yeşil", Color.FromArgb(79, 205, 145))
+    ];
+
+    static bool IsAccentColor(string id) => MaterialColors.Concat(BasicColors).Any(color => color.Id == id);
+    static bool IsAmoledColor(string id) => id is "Lavender" or "Rose" || BasicColors.Any(color => color.Id == id);
+    static int AmoledColorCount => BasicColors.Length + 2;
 
     static bool UsesAccentPalette(string? theme) => theme is "AMOLED" or "Material You";
 
     Color MaterialAccent()
     {
-        var color = MaterialColors.FirstOrDefault(choice => choice.Id == settings.MaterialYouColor).Color;
+        var palette = settings.Theme == "AMOLED" ? MaterialColors.Concat(BasicColors).Where(color => IsAmoledColor(color.Id)) : MaterialColors;
+        var color = palette.FirstOrDefault(choice => choice.Id == settings.MaterialYouColor).Color;
         return color.IsEmpty ? MaterialColors[0].Color : color;
     }
 
@@ -29,7 +41,7 @@ public sealed partial class MainForm
         var choices = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = true, Margin = Padding.Empty, Padding = new Padding(0, 2, 0, 6) };
         var tips = new ToolTip();
         choices.Disposed += (_, _) => tips.Dispose();
-        foreach (var color in MaterialColors)
+        foreach (var color in MaterialColors.Concat(BasicColors))
         {
             string name = T(color.English, color.Turkish);
             var button = new MaterialColorButton
@@ -44,7 +56,7 @@ public sealed partial class MainForm
             {
                 settings.MaterialYouColor = color.Id;
                 foreach (MaterialColorButton swatch in choices.Controls)
-                    swatch.IsSelected = Equals(swatch.Tag, color.Id);
+                    swatch.IsSelected = Equals(swatch.Tag, button.Tag);
                 if (preview != null) preview();
                 else
                 {
@@ -55,6 +67,16 @@ public sealed partial class MainForm
             choices.Controls.Add(button);
         }
         return choices;
+    }
+
+    void RefreshBasicColors(FlowLayoutPanel palette)
+    {
+        foreach (Control swatch in palette.Controls)
+        {
+            if (swatch.Tag is string id)
+                swatch.Visible = settings.Theme == "AMOLED" ? IsAmoledColor(id) : MaterialColors.Any(color => color.Id == id);
+            ((MaterialColorButton)swatch).IsSelected = ((MaterialColorButton)swatch).SwatchColor == MaterialAccent();
+        }
     }
 
     sealed class MaterialColorButton : AnimatedRoundButton

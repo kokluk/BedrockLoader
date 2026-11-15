@@ -18,7 +18,8 @@ public sealed partial class MainForm
 
     sealed record PortableSettings(int Format, string Language, string Theme, string MaterialColor, bool Light,
         bool WindowsTheme, bool Tray, bool Glow, bool Animations, bool Advanced, DiscordOptions Discord, List<SavedServer> Servers,
-        BackupParts? Included = null, bool? ClickSounds = null, bool? ShowUsage = null, string? LocalName = null);
+        BackupParts? Included = null, bool? ClickSounds = null, bool? ShowUsage = null, string? LocalName = null,
+        string? AppIconSymbol = null, int? AppIconColor = null);
 
     PortableSettings SnapshotSettings(BackupParts parts)
     {
@@ -26,7 +27,7 @@ public sealed partial class MainForm
         return new(1, source.Language, source.Theme, source.MaterialYouColor, source.LightMode, source.FollowWindowsTheme,
             source.CloseToTray, source.ShinyHomeIcons, source.AnimationsEnabled, source.AdvancedAnimationsEnabled, source.Discord,
             parts.HasFlag(BackupParts.Servers) ? [.. settings.Servers] : [], parts, source.ClickSounds, source.ShowUsage,
-            NormalizeLocalName(source.LocalName));
+            NormalizeLocalName(source.LocalName), source.AppIconSymbol, source.AppIconColor);
     }
 
     static PortableSettings ReadPortableSettings(Stream stream)
@@ -41,8 +42,9 @@ public sealed partial class MainForm
         data.Position = 0;
         var parsed = JsonSerializer.Deserialize<PortableSettings>(data);
         if (parsed?.Theme == "Blue") parsed = parsed with { Theme = "Midnight" };
+        if (parsed?.Theme == "Orange") parsed = parsed with { Theme = "Yellow" };
         if (parsed is not { Format: 1 } || parsed.Language is not ("TR" or "EN") ||
-            !ThemeChoices.Contains(parsed.Theme) || !MaterialColors.Any(color => color.Id == parsed.MaterialColor) ||
+            !ThemeChoices.Contains(parsed.Theme) || !IsAccentColor(parsed.MaterialColor) ||
             parsed.Discord == null || parsed.Servers == null || parsed.Servers.Count > 5000 ||
             parsed.Discord.ApplicationId is not { Length: <= 32 } || parsed.Discord.LargeImage is not { Length: <= 128 } ||
             parsed.Discord.SmallImage is not { Length: <= 128 } ||
@@ -74,6 +76,11 @@ public sealed partial class MainForm
             settings.ClickSounds = saved.ClickSounds ?? settings.ClickSounds;
             settings.ShowUsage = saved.ShowUsage ?? settings.ShowUsage;
             if (saved.LocalName != null) settings.LocalName = NormalizeLocalName(saved.LocalName);
+            if (saved.AppIconSymbol != null)
+            {
+                settings.AppIconSymbol = AppIconSymbols.Contains(saved.AppIconSymbol) ? saved.AppIconSymbol : "wolf";
+                settings.AppIconColor = saved.AppIconColor;
+            }
         }
         foreach (var server in parts.HasFlag(BackupParts.Servers) ? saved.Servers : [])
         {

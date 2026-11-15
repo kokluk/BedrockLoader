@@ -24,7 +24,9 @@ public sealed partial class MainForm
         page.RowStyles.Add(new RowStyle(SizeType.Absolute, 0));
         var list = new SpacedCheckedListBox { Dock = DockStyle.Fill, BorderStyle = BorderStyle.None, CheckOnClick = true, IntegralHeight = false };
         var remove = MakeButton(T("Delete checked", "Seçilenleri sil"), () => { }, 166, "trash");
-        var reveal = new AnimatedActionReveal(remove, 38, 8, height => page.RowStyles[3].Height = height) { Dock = DockStyle.Fill };
+        var reveal = new AnimatedActionReveal(remove, 38, 8, height => page.RowStyles[3].Height = height,
+            MakeButton(T("Export", "Dışa aktar"), () => ExportMods(folder, list.CheckedItems.OfType<string>().ToArray()), icon: "download"))
+            { Dock = DockStyle.Fill };
         var drop = BuildCinnabarDropArea(T("Drop mod files here", "Mod dosyalarını buraya bırak"),
             T("Choose or drop Cinnabar .wasm mod files.", "Cinnabar .wasm mod dosyalarını seç veya buraya bırak."),
             "WebAssembly (*.wasm)|*.wasm", IsCinnabarMod, Import);

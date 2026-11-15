@@ -200,6 +200,29 @@ internal static class SoftIcons
                     var points = Enumerable.Range(0, 16).Select(i => { double a = i * Math.PI / 8 - Math.PI / 2; float r = i % 2 == 0 ? 9.6f : 8.1f; return new PointF(12 + (float)Math.Cos(a) * r, 12 + (float)Math.Sin(a) * r); }).ToArray();
                     using (var p = new GraphicsPath()) { p.AddClosedCurve(points, 0.6f); graphics.FillPath(fill, p); graphics.DrawPath(pen, p); }
                     graphics.DrawEllipse(pen, 8.5f, 8.5f, 7, 7); break;
+                case "display":
+                    Shape(Round(2, 4, 20, 13, 2));
+                    Line(12, 17, 12, 21);
+                    Line(8, 21, 16, 21);
+                    break;
+                case "sound":
+                    graphics.DrawPolygon(pen, [new PointF(3, 9), new PointF(7, 9), new PointF(12, 5),
+                        new PointF(12, 19), new PointF(7, 15), new PointF(3, 15)]);
+                    graphics.DrawArc(pen, 10, 7, 8, 10, -55, 110);
+                    graphics.DrawArc(pen, 9, 3, 13, 18, -55, 110);
+                    break;
+                case "memory":
+                    Shape(Round(5, 5, 14, 14, 2));
+                    Shape(Round(9, 9, 6, 6, 1));
+                    for (int pin = 8; pin <= 16; pin += 4)
+                    {
+                        Line(pin, 2, pin, 5); Line(pin, 19, pin, 22);
+                        Line(2, pin, 5, pin); Line(19, pin, 22, pin);
+                    }
+                    break;
+                case "motion":
+                    graphics.DrawPolygon(pen, new PointF[] { new(7, 5), new(19, 12), new(7, 19) });
+                    break;
                 case "play":
                     using (var p = new GraphicsPath())
                     {
@@ -251,10 +274,10 @@ internal static class SoftIcons
                         p.AddBezier(22, 17, 20, 19, 18, 20, 16, 20); p.AddLine(16, 20, 14.5f, 17.5f);
                         p.AddBezier(14.5f, 17.5f, 13, 18, 11, 18, 9.5f, 17.5f); p.AddLine(9.5f, 17.5f, 8, 20);
                         p.AddBezier(8, 20, 6, 20, 4, 19, 2, 17); p.AddBezier(2, 17, 1, 14, 2, 10, 3, 7); p.CloseFigure();
-                        graphics.FillPath(fill, p); graphics.DrawPath(pen, p);
+                        p.AddEllipse(6.7f, 10.1f, 3.4f, 3.9f);
+                        p.AddEllipse(13.9f, 10.1f, 3.4f, 3.9f);
+                        graphics.FillPath(solid, p);
                     }
-                    graphics.FillEllipse(solid, 6.5f, 10, 3, 4); graphics.FillEllipse(solid, 14.5f, 10, 3, 4);
-                    graphics.DrawArc(pen, 6, 12, 12, 4, 25, 130);
                     break;
                 case "external":
                     using (var p = new GraphicsPath()) { p.AddBezier(10, 4, 4, 3, 3, 5, 3, 8); p.AddLine(3, 8, 3, 17); p.AddBezier(3, 17, 3, 20, 4, 21, 7, 21); p.AddLine(7, 21, 16, 21); p.AddBezier(16, 21, 20, 21, 21, 20, 20, 14); graphics.DrawPath(pen, p); }
@@ -265,6 +288,9 @@ internal static class SoftIcons
                     using (var p = new GraphicsPath()) { p.AddLine(9, 4, 17, 4); p.AddBezier(17, 4, 20, 4, 20, 5, 20, 8); p.AddLine(20, 8, 20, 15); graphics.DrawPath(pen, p); }
                     Shape(Round(4, 8, 12, 12, 3)); break;
                 case "close": Line(7, 7, 17, 17); Line(17, 7, 7, 17); break;
+                case "circle":
+                    graphics.DrawEllipse(pen, 4, 4, 16, 16);
+                    break;
                 case "status":
                     graphics.FillEllipse(fill, 3, 3, 18, 18); graphics.DrawEllipse(pen, 3, 3, 18, 18); Line(7.5f, 12, 10.5f, 15); Line(10.5f, 15, 16.5f, 9); break;
                 case "check-mark": Line(5, 12, 10, 17); Line(10, 17, 19, 7); break;

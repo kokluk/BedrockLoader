@@ -19,9 +19,7 @@ public sealed partial class MainForm
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46)); layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
         var header = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Margin = Padding.Empty };
         var title = WrappedText(mod.Name, 16, true); title.Dock = DockStyle.Fill;
-        var close = new SymbolButton { Symbol = "close", AccessibleName = T("Close", "Kapat"), Dock = DockStyle.Right, Width = 36, Height = 36, BackColor = MixColors(Surface, Accent, 0.12), ForeColor = TextColor, FocusBorderColor = Accent, CornerRadius = 18, Cursor = Cursors.Hand };
-        close.Click += (_, _) => popup.DialogResult = DialogResult.Cancel;
-        header.Controls.Add(title); header.Controls.Add(close);
+        header.Controls.Add(title);
         var explanation = WrappedText(T("Choose your Minecraft version. Download starts only when you select Download & install.", "Minecraft sürümünü seç. İndirme yalnızca İndir ve kur seçildiğinde başlar."), 10); explanation.Dock = DockStyle.Fill;
         var selector = new SoftSelector(this) { Dock = DockStyle.Fill, Margin = new Padding(0, 2, 0, 4), Font = LauncherFont.Create(10), AccessibleName = T("Minecraft version", "Minecraft sürümü") };
         foreach (var variant in mod.Variants)

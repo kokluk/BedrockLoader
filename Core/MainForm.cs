@@ -69,11 +69,11 @@ public sealed partial class MainForm : Form
         english = settings.Language == "EN";
         addonDownloads = Path.Combine(appDataRoot, "Addons", "Downloads");
         comMojangRoot = ResolveComMojangRoot();
-        lightMode = settings.FollowWindowsTheme ? WindowsUsesLightTheme() : settings.LightMode;
+        lightMode = EffectiveLightMode();
         ApplyThemePalette(); ApplyLightPalette();
 
         Text = "BedrockLoader";
-        Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        Disposed += (_, _) => { DisposeTray(); generatedAppIcon?.Dispose(); };
         Size = new Size(1040, 680);
         MinimumSize = new Size(800, 540);
         StartPosition = FormStartPosition.CenterScreen;
@@ -101,11 +101,10 @@ public sealed partial class MainForm : Form
         Directory.CreateDirectory(modsFolder);
         Directory.CreateDirectory(addonDownloads);
         ShowPage("Home");
-        Shown += (_, _) => ShowLauncherIntro();
+        Shown += (_, _) => StartDiscordPresence();
         LogAction("Application started", "Uygulama başlatıldı");
         ApplyTheme();
         UpdateStatus(T("Ready.", "Hazır."));
-        StartDiscordPresence();
     }
 
     static HttpClient CreateHttpClient()
@@ -114,6 +113,8 @@ public sealed partial class MainForm : Form
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"BedrockLoader/{ReleaseUpdates.CurrentVersion.ToString(3)} (Windows; .NET 8)");
         return http;
     }
+
+    Action? localizeShell;
 
     void BuildShell()
     {
@@ -140,14 +141,14 @@ public sealed partial class MainForm : Form
         settingsButton.Click += (_, _) => ShowPage("Settings");
         var tips = new ToolTip(); tips.SetToolTip(settingsButton, T("Settings", "Ayarlar"));
         var traffic = new FlowLayoutPanel { Width = 108, Height = 36, Padding = new Padding(0, 3, 0, 0), FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Tag = "traffic", Margin = Padding.Empty };
-        void Traffic(string tip, string symbol, Action action)
+        void Traffic(string englishTip, string turkishTip, string symbol, Action action)
         {
-            var button = new SymbolButton { Symbol = symbol, Width = 30, Height = 30, CornerRadius = 12, Margin = new Padding(3, 0, 3, 0), Cursor = Cursors.Hand, AccessibleName = tip };
-            button.Click += (_, _) => action(); tips.SetToolTip(button, tip); traffic.Controls.Add(button);
+            var button = new SymbolButton { Symbol = symbol, Width = 30, Height = 30, CornerRadius = 12, Margin = new Padding(3, 0, 3, 0), Cursor = Cursors.Hand, Tag = (englishTip, turkishTip) };
+            button.Click += (_, _) => action(); traffic.Controls.Add(button);
         }
-        Traffic(T("Minimize", "Küçült"), "minimize", () => ShowWindow(Handle, 6));
-        Traffic(T("Maximize / restore", "Büyüt / geri al"), "maximize", () => ShowWindow(Handle, WindowState == FormWindowState.Maximized ? 9 : 3));
-        Traffic(T("Close", "Kapat"), "close", Close);
+        Traffic("Minimize", "Küçült", "minimize", () => ShowWindow(Handle, 6));
+        Traffic("Maximize / restore", "Büyüt / geri al", "maximize", () => ShowWindow(Handle, WindowState == FormWindowState.Maximized ? 9 : 3));
+        Traffic("Close", "Kapat", "close", Close);
         header.Controls.Add(settingsButton); header.Controls.Add(traffic);
         root.Controls.Add(header, 0, 0);
         var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Padding = new Padding(0, 20, 0, 20), Margin = Padding.Empty, Tag = "shell" };
@@ -232,9 +233,34 @@ public sealed partial class MainForm : Form
         ArrangeHeaderActions();
         root.Controls.Add(footer, 0, 2);
         TrackProximity(root);
+        localizeShell = () =>
+        {
+            settingsButton.Text = settingsButton.AccessibleName = T("Settings", "Ayarlar");
+            logs.Text = T("Logs", "Kayıtlar");
+            logo.AccessibleName = T("Updates", "Güncellemeler");
+            language.AccessibleName = T("Language", "Dil");
+            backups.AccessibleName = T("Backups", "Yedekler");
+            foreach (var button in traffic.Controls.OfType<SymbolButton>())
+                if (button.Tag is ValueTuple<string, string> labels)
+                    button.AccessibleName = T(labels.Item1, labels.Item2);
+            foreach (var button in new[] { settingsButton, language, backups }.Concat(traffic.Controls.OfType<SymbolButton>()))
+                tips.SetToolTip(button, button.AccessibleName);
+            ((ToolStripMenuItem)languageMenu.Items[0]).Checked = !english;
+            ((ToolStripMenuItem)languageMenu.Items[1]).Checked = english;
+        };
+        localizeShell();
     }
 
-    void SetLanguage(string code) { settings.Language = code; english = code == "EN"; SaveSettings(); RefreshDiscordOptions(); BuildShellRefresh(); }
+    void SetLanguage(string code)
+    {
+        if (settings.Language == code) return;
+        settings.Language = code;
+        english = code == "EN";
+        SaveSettings();
+        localizeShell?.Invoke();
+        ShowPage(currentPage, force: true);
+        UpdateStatus(T("Language changed.", "Dil değiştirildi."));
+    }
 
     void BuildShellRefresh()
     {
@@ -400,10 +426,14 @@ public sealed partial class MainForm : Form
         }
     }
 
-    void ShowLauncherIntro()
+    internal void ShowLauncherIntro()
     {
         if (settings.IntroSeen) return;
-        ShowSetupWizard();
+        var area = Screen.FromPoint(Cursor.Position).WorkingArea;
+        Size = new Size(Math.Min(Width, area.Width), Math.Min(Height, area.Height));
+        StartPosition = FormStartPosition.Manual;
+        Location = new Point(area.X + (area.Width - Width) / 2, area.Y + (area.Height - Height) / 2);
+        ShowSetupWizard(beforeLauncher: true);
         settings.IntroSeen = true;
         SaveSettings();
     }
@@ -536,7 +566,9 @@ public sealed partial class MainForm : Form
         listPanel.Controls.Add(modList); listPanel.Controls.Add(listHeader);
         var deleteMods = MakeButton(T("Delete checked", "Seçilenleri sil"), DeleteCheckedMods, 150);
         deleteModsButton = deleteMods;
-        deleteModsReveal = new AnimatedActionReveal(deleteMods, 28, 8) { Dock = DockStyle.Bottom, BackColor = SurfaceAlt, Tag = "card" };
+        deleteModsReveal = new AnimatedActionReveal(deleteMods, 28, 8, export: MakeButton(T("Export", "Dışa aktar"),
+            () => ExportMods(modsFolder, modList.CheckedItems.OfType<string>().ToArray()), icon: "download"))
+            { Dock = DockStyle.Bottom, BackColor = SurfaceAlt, Tag = "card" };
         listPanel.Controls.Add(deleteModsReveal);
         layout.Controls.Add(listPanel, 0, 1);
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 0), Margin = Padding.Empty, WrapContents = false, Tag = "page" };
@@ -1046,7 +1078,7 @@ public sealed partial class MainForm : Form
         {
             "Purple" => Color.FromArgb(184, 126, 255),
             "Green" => Color.FromArgb(74, 210, 150),
-            "Orange" => Color.FromArgb(255, 165, 80),
+            "Yellow" or "Orange" => Color.FromArgb(249, 209, 80),
             "Red" => Color.FromArgb(255, 95, 105),
             "AMOLED" or "Material You" => MaterialAccent(),
             _ => Color.FromArgb(50, 190, 240)
@@ -1143,7 +1175,9 @@ public sealed partial class MainForm : Form
 
     void ApplyTheme()
     {
+        lightMode = EffectiveLightMode();
         ApplyThemePalette(); ApplyLightPalette();
+        RefreshAppIcon();
         BackColor = Bg; ForeColor = TextColor;
         ApplyDwmTheme();
         RecolorTree(this);
@@ -1220,8 +1254,9 @@ public sealed partial class MainForm : Form
                 using var document = JsonDocument.Parse(json);
                 if (loaded.IntroSeen && !document.RootElement.TryGetProperty(nameof(AppSettings.FollowWindowsTheme), out _))
                     loaded.FollowWindowsTheme = false;
+                if (loaded.Theme == "Orange") loaded.Theme = "Yellow";
                 if (!ThemeChoices.Contains(loaded.Theme)) loaded.Theme = "Midnight";
-                if (!MaterialColors.Any(choice => choice.Id == loaded.MaterialYouColor)) loaded.MaterialYouColor = "Lavender";
+                if (!IsAccentColor(loaded.MaterialYouColor)) loaded.MaterialYouColor = "Lavender";
                 loaded.Servers ??= [];
                 loaded.Discord ??= new DiscordOptions();
                 return loaded;
@@ -1361,6 +1396,8 @@ public sealed partial class MainForm : Form
         public bool AdvancedAnimationsEnabled { get; set; } = true;
         public bool ClickSounds { get; set; }
         public string LocalName { get; set; } = "";
+        public string AppIconSymbol { get; set; } = "wolf";
+        public int? AppIconColor { get; set; }
         public bool ShowUsage { get; set; }
         public bool FollowWindowsTheme { get; set; } = true;
         public bool CinnabarNightly { get; set; }

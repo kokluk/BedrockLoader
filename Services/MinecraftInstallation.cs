@@ -12,9 +12,9 @@ public sealed partial class MainForm
     protected override void OnActivated(EventArgs e)
     {
         base.OnActivated(e);
-        if (settings.FollowWindowsTheme && lightMode != WindowsUsesLightTheme())
+        if (settings.FollowWindowsTheme && lightMode != EffectiveLightMode())
         {
-            lightMode = !lightMode;
+            lightMode = EffectiveLightMode();
             BuildShellRefresh();
         }
         if (currentPage != "Home") return;

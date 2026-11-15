@@ -35,6 +35,8 @@ internal static class Program
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         };
         Application.SetDefaultFont(LauncherFont.Create(9));
-        Application.Run(new MainForm());
+        using var launcher = new MainForm();
+        launcher.ShowLauncherIntro();
+        Application.Run(launcher);
     }
 }

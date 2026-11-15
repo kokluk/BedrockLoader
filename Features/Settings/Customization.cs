@@ -2,39 +2,43 @@ namespace KoklukBedrockModloader;
 
 public sealed partial class MainForm
 {
-    RoundedPopupForm MakeChoiceDialog(string title, string description, IReadOnlyList<PopupToggle> choices, string accept, int columns = 1, bool showBack = false)
+    RoundedPopupForm MakeChoiceDialog(string title, string description, IReadOnlyList<PopupToggle> choices, string accept, int columns = 1, bool showBack = false, string? headingIcon = null, Control? extra = null)
     {
         int rows = (choices.Count + columns - 1) / columns;
+        bool useCards = headingIcon != null;
         var dialog = new RoundedPopupForm(Accent)
         {
-            Text = title, BackColor = Surface, ForeColor = TextColor, ClientSize = new Size(columns == 2 ? 585 : 515, 170 + 44 * rows),
+            Text = title, BackColor = Surface, ForeColor = TextColor,
+            ClientSize = new Size(useCards ? 638 : columns == 2 ? 585 : 515, (useCards ? 154 : 170) + 44 * rows + (extra == null ? 0 : 48)),
             StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.None, ShowInTaskbar = false
         };
         var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(14, 7, 14, 7) };
         grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-        grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        grid.RowStyles.Add(new RowStyle(SizeType.Absolute, useCards ? 32 : 52));
         var heading = WrappedText(title, 15, true);
         heading.Dock = DockStyle.Fill;
-        heading.Padding = new Padding(0, 0, 44, 0);
         var header = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty };
         header.Controls.Add(heading);
-        var close = MakeShortcutClose(dialog);
-        close.Dock = DockStyle.None;
-        close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        void PlaceClose() => close.Location = new Point(Math.Max(0, header.ClientSize.Width - close.Width), 2);
-        header.Resize += (_, _) => PlaceClose();
-        header.Controls.Add(close);
-        close.BringToFront();
-        PlaceClose();
+        if (headingIcon != null)
+        {
+            heading.Padding = new Padding(37, 0, 0, 0);
+            var glyph = new HeadingGlyph(this, headingIcon) { Location = new Point(1, 6), Size = new Size(30, 30) };
+            header.Controls.Add(glyph);
+            glyph.BringToFront();
+        }
         grid.Controls.Add(header, 0, 0);
-        grid.Controls.Add(WrappedText(description), 0, 1);
+        var subtitle = WrappedText(description);
+        if (useCards) subtitle.Padding = new Padding(37, 0, 0, 0);
+        grid.Controls.Add(subtitle, 0, 1);
         grid.GetControlFromPosition(0, 1)!.Dock = DockStyle.Fill;
         grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 44 * rows));
         grid.Controls.Add(BuildChoiceGrid(choices, columns), 0, 2);
-        grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        grid.RowStyles.Add(extra == null ? new RowStyle(SizeType.Percent, 100) : new RowStyle(SizeType.Absolute, 48));
+        if (extra != null) grid.Controls.Add(extra, 0, 3);
         grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
         var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false };
-        var ok = MakeButton(accept, () => dialog.DialogResult = DialogResult.OK, 120);
+        var ok = MakeButton(accept, () => dialog.DialogResult = DialogResult.OK, useCards ? 140 : 120,
+            useCards ? "check-mark" : null);
         ok.Tag = "primary";
         var cancel = MakeButton(showBack ? T("Back", "Geri") : T("Cancel", "Vazgeç"), () => dialog.DialogResult = DialogResult.Cancel, 120);
         ok.Margin = cancel.Margin = new Padding(5, 2, 5, 2);
@@ -43,7 +47,7 @@ public sealed partial class MainForm
         grid.Controls.Add(footer, 0, 4);
         dialog.Controls.Add(grid);
         dialog.AcceptButton = ok;
-        dialog.CancelButton = showBack ? close : cancel;
+        dialog.CancelButton = cancel;
         ok.Enabled = choices.Any(choice => choice.Checked) || accept == T("Save", "Kaydet");
         foreach (var choice in choices)
             choice.CheckedChanged += (_, _) => ok.Enabled = choices.Any(item => item.Checked) || accept == T("Save", "Kaydet");
@@ -73,7 +77,7 @@ public sealed partial class MainForm
         Text = text, Checked = value, Dock = DockStyle.Fill, Cursor = Cursors.Hand
     };
 
-    PopupToggle[] MakeCustomizationChoices(out Action apply, bool previewMotion = false)
+    PopupToggle[] MakeCustomizationChoices(out Action apply, bool previewMotion = false, bool styled = false)
     {
         var glow = MakeShineToggle();
         var animation = MakeAnimationToggle(false);
@@ -106,22 +110,34 @@ public sealed partial class MainForm
             if (usageBadge != null) usageBadge.Visible = settings.ShowUsage;
             settings.CloseToTray = tray.Checked;
         };
-        return [glow, animation, advanced, sounds, usage, tray];
+        PopupToggle[] choices = [glow, animation, advanced, sounds, usage, tray];
+        if (styled)
+        {
+            string[] icons = ["sun", "motion", "layers", "sound", "memory", "download"];
+            for (int i = 0; i < choices.Length; i++) StyleChoiceRow(choices[i], icons[i]);
+        }
+        return choices;
+    }
+
+    static void StyleChoiceRow(PopupToggle choice, string icon)
+    {
+        choice.RowIcon = icon;
+        choice.Margin = new Padding(0, 2, 0, 3);
     }
 
     void ShowCustomization()
     {
-        var choices = MakeCustomizationChoices(out var apply);
-        var rpc = MakeChoice(T("Discord Rich Presence", "Discord Rich Presence"), settings.Discord.Enabled);
-        rpc.AccessibleDescription = T("Shows your game activity on Discord.", "Oyun etkinliğini Discord’da gösterir.");
+        var choices = MakeCustomizationChoices(out var apply, styled: true);
+        var launcherSettings = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
+        launcherSettings.Controls.Add(new AboutLogo { Size = new Size(32, 36), ForeColor = Accent });
+        launcherSettings.Controls.Add(MakeButton(T("Launcher Settings", "Launcher Ayarları"),
+            () => ShowLauncherIconSettings(launcherSettings.FindForm() ?? this), 175));
         using var dialog = MakeChoiceDialog(T("Customization", "Özelleştirme"),
-            T("Choose button effects, sound and window behavior.", "Düğme efektlerini, sesi ve pencere davranışını seç."),
-            [.. choices, rpc], T("Save", "Kaydet"), 2);
+            T("Customize the look and behavior of the launcher.", "Launcher’ın görünümünü ve davranışını özelleştir."),
+            choices, T("Save", "Kaydet"), headingIcon: "display", extra: launcherSettings);
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         apply();
-        settings.Discord = settings.Discord with { Enabled = rpc.Checked };
         SaveSettings();
-        RefreshDiscordOptions();
     }
 
     BackupParts? ChooseBackupParts(bool full, bool importing, Action? back = null)

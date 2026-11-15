@@ -22,6 +22,7 @@ public sealed partial class MainForm
         light.Disposed += (_, _) => themeTip.Dispose();
         light.Click += (_, _) =>
         {
+            if (settings.Theme == "AMOLED") return;
             lightMode = !lightMode;
             settings.LightMode = lightMode;
             settings.FollowWindowsTheme = false;
@@ -71,9 +72,12 @@ public sealed partial class MainForm
         layout.Controls.Add(advancedButton, 1, advancedRow);
         void RefreshSettingsRows()
         {
+            light.Enabled = settings.Theme != "AMOLED";
+            light.Symbol = light.Enabled && EffectiveLightMode() ? "sun" : "moon";
             bool visible = UsesAccentPalette(settings.Theme);
             layout.SuspendLayout();
             paletteLabel.Visible = materialColors.Visible = visible;
+            RefreshBasicColors(materialColors);
             layout.RowStyles[2].Height = visible ? 100 : 0;
             foreach (int row in Enumerable.Range(separatorRow, removalRow - separatorRow + 1))
             {

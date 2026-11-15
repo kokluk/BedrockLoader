@@ -170,7 +170,7 @@ public sealed partial class MainForm
         }
     }
 
-    void TrackProximity(Control shell)
+    void TrackProximity(Control shell, Func<bool>? isEnabled = null)
     {
         var tracker = new System.Windows.Forms.Timer { Interval = 33 };
         var glowing = new HashSet<AnimatedRoundButton>();
@@ -196,7 +196,8 @@ public sealed partial class MainForm
         {
             var cursor = Cursor.Position;
             var window = shell.FindForm();
-            bool active = settings.ShinyHomeIcons && window is { ContainsFocus: true } && window.WindowState != FormWindowState.Minimized;
+            bool active = (isEnabled?.Invoke() ?? settings.ShinyHomeIcons) &&
+                window is { ContainsFocus: true } && window.WindowState != FormWindowState.Minimized;
             var state = (cursor, window?.Bounds ?? Bounds, currentPage, cinnabarMode, active);
             if (previous == state) return;
             previous = state;
@@ -272,7 +273,8 @@ public sealed partial class MainForm
         {
             if (layout.IsDisposed || layout.RowStyles[2].Height == height) return;
             layout.RowStyles[2].Height = height;
-        }) { Dock = DockStyle.Fill, BackColor = Surface, Tag = "page" };
+        }, MakeButton(T("Export", "Dışa aktar"), ExportSelectedPacks, icon: "download"))
+            { Dock = DockStyle.Fill, BackColor = Surface, Tag = "page" };
         layout.Controls.Add(columns, 0, 1); layout.Controls.Add(deleteAddonsReveal, 0, 2);
         page.Controls.Add(layout); contentHost.Controls.Add(page);
         AddPageHeading(T("Packs", "Packler"), T("Install and manage your Bedrock packs.", "Bedrock paketlerini yükle ve yönet.")); RefreshAddonList();
@@ -308,9 +310,15 @@ public sealed partial class MainForm
         var description = WrappedText(T("Manage your Minecraft Bedrock library in one place. Add local mods, install add-on packs and review your activity.", "Minecraft Bedrock kütüphaneni tek yerden yönet. Yerel modlarını ekle, eklenti paketlerini yükle ve işlem kayıtlarını incele."), 11);
         description.Dock = DockStyle.Fill; description.TextAlign = ContentAlignment.TopCenter; description.Padding = new Padding(12, 6, 12, 0);
         var version = WrappedText(T($"Version {DisplayVersion} • Windows", $"Sürüm {DisplayVersion} • Windows"), 9); version.Dock = DockStyle.Fill; version.TextAlign = ContentAlignment.MiddleCenter;
-        var github = MakeButton("GitHub", () => { OpenUrl("https://github.com/kokluk"); LogAction("Opened GitHub profile: kokluk", "GitHub profili açıldı: kokluk"); }, 220, "github");
-        github.Tag = "primary"; github.Anchor = AnchorStyles.None; github.Margin = Padding.Empty;
-        layout.Controls.Add(logo, 0, 0); layout.Controls.Add(title, 0, 1); layout.Controls.Add(description, 0, 2); layout.Controls.Add(version, 0, 3); layout.Controls.Add(github, 0, 5);
+        const string repository = "https://github.com/kokluk/Bedrockloader";
+        var links = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Anchor = AnchorStyles.None, Margin = Padding.Empty, Tag = "card" };
+        var source = MakeButton(T("Source code", "Kaynak Kodu"), () => OpenUrl(repository), 150, "github");
+        source.Tag = "primary";
+        links.Controls.AddRange([source,
+            MakeButton(T("Report a bug", "Hata Bildir"), () => OpenUrl(repository + "/issues/new"), 135, "About"),
+            MakeButton(T("Suggest an idea", "Öneri"), () => OpenUrl(repository + "/issues/new?title=Feature%20request%3A%20"), 145, "external")]);
+        foreach (Control link in links.Controls) link.Margin = new Padding(4, 0, 4, 0);
+        layout.Controls.Add(logo, 0, 0); layout.Controls.Add(title, 0, 1); layout.Controls.Add(description, 0, 2); layout.Controls.Add(version, 0, 3); layout.Controls.Add(links, 0, 5);
         void FitAbout()
         {
             bool compact = card.ClientSize.Height < 360;

@@ -22,7 +22,6 @@ public sealed partial class MainForm
             ContentPath = settings.ContentPath,
             LocalName = NormalizeLocalName(settings.LocalName),
             English = settings.Language == "EN",
-            OnHomePage = currentPage == "Home",
             ApplicationId = string.IsNullOrWhiteSpace(options.ApplicationId) ? DefaultDiscordApplicationId : options.ApplicationId
         });
     }
@@ -42,7 +41,7 @@ public sealed partial class MainForm
                     var options = Volatile.Read(ref presenceOptions);
                     bool enabled = options.Enabled && ValidDiscordId(options.ApplicationId);
                     var game = enabled ? MinecraftInstallation.FindRunningGame(options.ContentPath) : null;
-                    bool showPresence = enabled && (game is not null || options.OnHomePage);
+                    bool showPresence = enabled;
                     if (!showPresence || applicationId != options.ApplicationId)
                     {
                         client?.Dispose();
@@ -104,68 +103,32 @@ public sealed partial class MainForm
 
     sealed record PresenceSnapshot(string Details, string? State, DateTime? StartedUtc, string LargeImage, string SmallImage);
 
-    void ConfigureDiscordPresence()
+    PopupToggle[] MakeDiscordChoices(out Func<DiscordOptions> readChoices)
     {
         var options = settings.Discord ?? new DiscordOptions();
-        using var dialog = new RoundedPopupForm(Accent)
-        {
-            Text = "Discord Rich Presence", StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.None,
-            ClientSize = new Size(570, 252), AutoScaleMode = AutoScaleMode.Dpi, BackColor = Surface, ForeColor = TextColor,
-            ShowInTaskbar = false, MinimizeBox = false, MaximizeBox = false, Font = Font
-        };
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5, Padding = new Padding(20), AutoScroll = true };
-        int row = 0;
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 46));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54));
-        dialog.Controls.Add(layout);
-        using var tips = new ToolTip { InitialDelay = 350 };
-        Span(new Label { Text = "Discord Rich Presence", Font = new Font(Font.FontFamily, 16, FontStyle.Bold), Dock = DockStyle.Fill }, 38);
-        var enabled = Check(T("Enable Rich Presence", "Rich Presence’ı etkinleştir"), options.Enabled);
-        var version = Check(T("Share Minecraft version", "Minecraft sürümünü paylaş"), options.ShowVersion);
-        var time = Check(T("Share elapsed time", "Oyun süresini paylaş"), options.ShowTime);
-        var cancel = MakeButton(T("Back", "Geri"), () => dialog.DialogResult = DialogResult.Cancel);
-        var save = MakeButton(T("Save", "Kaydet"), () =>
-        {
-            settings.Discord = options with { Enabled = enabled.Checked, ShowVersion = version.Checked, ShowTime = time.Checked };
-            SaveSettings();
-            RefreshDiscordOptions();
-            dialog.DialogResult = DialogResult.OK;
-        });
-        save.Tag = "primary";
-        ApplyButtonPalette(save);
-        ApplyButtonPalette(cancel);
-        tips.SetToolTip(cancel, T("Click to discard changes", "Değişiklikleri iptal etmek için tıkla"));
-        tips.SetToolTip(save, T("Click to save changes", "Değişiklikleri kaydetmek için tıkla"));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        cancel.Anchor = save.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-        cancel.Margin = new Padding(0, 0, 5, 0);
-        save.Margin = new Padding(5, 0, 0, 0);
-        layout.Controls.Add(cancel, 0, row); layout.Controls.Add(save, 1, row);
-        dialog.CancelButton = cancel;
-        dialog.AcceptButton = save;
-        var close = MakeShortcutClose(dialog);
-        close.Dock = DockStyle.None;
-        close.Size = new Size(34, 34);
-        close.Location = new Point(dialog.ClientSize.Width - 48, 14);
-        close.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        dialog.Controls.Add(close);
-        close.BringToFront();
-        dialog.ShowDialog(this);
+        var enabled = MakeChoice(T("Enable Rich Presence", "Rich Presence’ı etkinleştir"), options.Enabled);
+        var version = MakeChoice(T("Share Minecraft version", "Minecraft sürümünü paylaş"), options.ShowVersion);
+        var time = MakeChoice(T("Share elapsed time", "Oyun süresini paylaş"), options.ShowTime);
+        StyleChoiceRow(enabled, "discord");
+        StyleChoiceRow(version, "game");
+        StyleChoiceRow(time, "status");
+        void RefreshAvailability() => version.Enabled = time.Enabled = enabled.Checked;
+        enabled.CheckedChanged += (_, _) => RefreshAvailability();
+        RefreshAvailability();
+        readChoices = () => options with { Enabled = enabled.Checked, ShowVersion = version.Checked, ShowTime = time.Checked };
+        return [enabled, version, time];
+    }
 
-        CheckBox Check(string label, bool value)
-        {
-            var box = new PopupToggle(Accent, SurfaceAlt) { Text = label, Checked = value, Cursor = Cursors.Hand };
-            tips.SetToolTip(box, T("Click to toggle", "Açmak veya kapatmak için tıkla"));
-            Span(box, 34);
-            return box;
-        }
-        void Span(Control control, int height)
-        {
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
-            control.Dock = DockStyle.Fill;
-            layout.Controls.Add(control, 0, row++);
-            layout.SetColumnSpan(control, 2);
-        }
+    void ConfigureDiscordPresence()
+    {
+        var choices = MakeDiscordChoices(out var readChoices);
+        using var dialog = MakeChoiceDialog("Discord Rich Presence",
+            T("Choose which game details to show on your Discord profile.", "Discord profilinde hangi oyun bilgilerinin görüneceğini seç."),
+            choices, T("Save", "Kaydet"), headingIcon: "discord");
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        settings.Discord = readChoices();
+        SaveSettings();
+        RefreshDiscordOptions();
     }
 
     sealed record DiscordOptions
@@ -182,7 +145,5 @@ public sealed partial class MainForm
         public string LocalName { get; init; } = "";
         [System.Text.Json.Serialization.JsonIgnore]
         public bool English { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore]
-        public bool OnHomePage { get; init; }
     }
 }

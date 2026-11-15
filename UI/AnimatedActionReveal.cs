@@ -9,6 +9,7 @@ public sealed partial class MainForm
     sealed class AnimatedActionReveal : Panel
     {
         readonly AnimatedRoundButton button;
+        readonly AnimatedRoundButton? export;
         readonly System.Windows.Forms.Timer timer = new() { Interval = 15 };
         readonly Action<int>? reserveHeight;
         readonly int buttonHeight, topGap;
@@ -16,7 +17,7 @@ public sealed partial class MainForm
         double amount, from, extent, fromExtent;
         bool shown;
 
-        public AnimatedActionReveal(AnimatedRoundButton button, int buttonHeight, int topGap, Action<int>? reserveHeight = null)
+        public AnimatedActionReveal(AnimatedRoundButton button, int buttonHeight, int topGap, Action<int>? reserveHeight = null, AnimatedRoundButton? export = null)
         {
             this.button = button; this.buttonHeight = buttonHeight; this.topGap = topGap; this.reserveHeight = reserveHeight;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
@@ -25,6 +26,13 @@ public sealed partial class MainForm
             button.HasRevealAnimation = true; button.RevealTextAmount = 0;
             button.RevealAmount = 0; button.Visible = false; button.Enabled = false; button.TabStop = false;
             Controls.Add(button);
+            this.export = export;
+            if (export != null)
+            {
+                export.Margin = Padding.Empty;
+                export.Visible = export.Enabled = export.TabStop = false;
+                Controls.Add(export);
+            }
             timer.Tick += (_, _) => Advance();
         }
 
@@ -34,6 +42,7 @@ public sealed partial class MainForm
             if (shown == value && animate) return;
             shown = value;
             if (!value) { button.Enabled = false; button.TabStop = false; }
+            if (!value && export != null) export.Visible = export.Enabled = export.TabStop = false;
             if (!animate || AnimatedRoundButton.ReducedMotion)
             {
                 timer.Stop(); amount = extent = value ? 1 : 0; ApplyAmount(); return;
@@ -67,6 +76,7 @@ public sealed partial class MainForm
             button.Visible = amount > 0.005;
             button.Enabled = shown && amount >= 0.95;
             button.TabStop = button.Enabled;
+            if (export != null) export.Visible = export.Enabled = export.TabStop = button.Enabled;
             PositionButton();
         }
 
@@ -74,7 +84,9 @@ public sealed partial class MainForm
         {
             // Keep the button's native height and screen baseline unchanged.
             // As its parent row grows upward, this bottom anchor compensates.
-            button.SetBounds(0, ClientSize.Height - buttonHeight, Math.Max(1, ClientSize.Width), buttonHeight);
+            int width = export == null ? ClientSize.Width : Math.Max(1, (ClientSize.Width - 8) / 2);
+            button.SetBounds(0, ClientSize.Height - buttonHeight, Math.Max(1, width), buttonHeight);
+            export?.SetBounds(width + 8, ClientSize.Height - buttonHeight, Math.Max(1, ClientSize.Width - width - 8), buttonHeight);
         }
 
         protected override void OnResize(EventArgs e) { base.OnResize(e); if (button != null) PositionButton(); }

@@ -18,20 +18,7 @@ public sealed partial class MainForm
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
-        var header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = Padding.Empty, Padding = new Padding(0, 0, 0, 16) };
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40));
-        header.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         var heading = new Label { Text = title, Dock = DockStyle.Fill, ForeColor = TextColor, Font = LauncherFont.Create(16, FontStyle.Bold) };
-        var close = new SymbolButton
-        {
-            Symbol = "close", AccessibleName = T("Close", "Kapat"), Size = new Size(36, 36),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right, Margin = Padding.Empty,
-            BackColor = MixColors(Surface, Accent, 0.12), ForeColor = TextColor,
-            FocusBorderColor = Accent, CornerRadius = 18, Cursor = Cursors.Hand
-        };
-        close.Click += (_, _) => popup.DialogResult = confirmation ? DialogResult.No : DialogResult.OK;
-        header.Controls.Add(heading, 0, 0); header.Controls.Add(close, 1, 0);
         var body = new ScrollTextBox { Text = message.ReplaceLineEndings(Environment.NewLine), Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.None, BackColor = Surface, ForeColor = TextColor, Font = LauncherFont.Create(10), WordWrap = true, TabStop = false };
         var actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = confirmation ? 2 : 1, RowCount = 1, Margin = Padding.Empty, Padding = new Padding(0, 14, 0, 6), BackColor = Surface };
         actions.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -49,7 +36,7 @@ public sealed partial class MainForm
         }
         // Enter defaults to cancellation; Escape also dismisses without approval.
         popup.AcceptButton = cancel;
-        layout.Controls.Add(header, 0, 0); layout.Controls.Add(body, 0, 1); layout.Controls.Add(actions, 0, 2);
+        layout.Controls.Add(heading, 0, 0); layout.Controls.Add(body, 0, 1); layout.Controls.Add(actions, 0, 2);
         card.Controls.Add(layout);
         popup.Shown += (_, _) => cancel.Focus();
         return popup.ShowDialog(this);
@@ -81,6 +68,7 @@ public sealed partial class MainForm
         internal Color AccentColor { get; set; } = accent;
         internal Color TrackColor { get; set; } = surface;
         internal bool PlaySoundOnClick { get; set; } = true;
+        internal string? RowIcon { get; set; }
 
         protected override void OnClick(EventArgs e) { if (PlaySoundOnClick) PlayClick(this); base.OnClick(e); }
 
@@ -119,17 +107,43 @@ public sealed partial class MainForm
         {
             e.Graphics.Clear(BackColor);
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            bool card = RowIcon != null;
+            Color textColor = Enabled ? ForeColor : MixColors(BackColor, ForeColor, .52);
+            if (RowIcon is { } icon && Width > 2 && Height > 2)
+            {
+                using var row = RoundedPath(new Rectangle(1, 1, Width - 3, Height - 3), 14);
+                bool hot = Enabled && ClientRectangle.Contains(PointToClient(Cursor.Position));
+                using var background = new SolidBrush(MixColors(BackColor, AccentColor, hot ? .14 : .07));
+                using var border = new Pen(Focused ? AccentColor : MixColors(BackColor, ForeColor, .12));
+                e.Graphics.FillPath(background, row);
+                e.Graphics.DrawPath(border, row);
+                SoftIcons.Draw(e.Graphics, icon, new RectangleF(14, (Height - 22) / 2f, 22, 22), textColor);
+            }
             int top = (Height - 20) / 2;
-            using var track = RoundedPath(new Rectangle(2, top, 36, 20), 10);
+            int trackLeft = card ? Math.Max(2, Width - 56) : 2;
+            int trackWidth = card ? 42 : 36;
+            using var track = RoundedPath(new Rectangle(trackLeft, top, trackWidth, 20), 10);
             float slide = slideTimer?.Enabled == true ? position : Checked ? 1 : 0;
-            using var fill = new SolidBrush(MixColors(TrackColor, AccentColor, slide));
+            using var fill = new SolidBrush(MixColors(TrackColor, AccentColor, Enabled ? slide : slide * .35f));
             using var pen = new Pen(Focused ? AccentColor : MixColors(TrackColor, ForeColor, .35));
             using var thumb = new SolidBrush(MixColors(ForeColor, ReadableText(AccentColor), slide));
             e.Graphics.FillPath(fill, track);
             e.Graphics.DrawPath(pen, track);
-            e.Graphics.FillEllipse(thumb, 5 + 16 * slide, top + 3, 14, 14);
-            TextRenderer.DrawText(e.Graphics, Text, Font, new Rectangle(46, 0, Math.Max(0, Width - 46), Height), ForeColor,
+            e.Graphics.FillEllipse(thumb, trackLeft + 3 + (trackWidth - 20) * slide, top + 3, 14, 14);
+            TextRenderer.DrawText(e.Graphics, Text, Font, new Rectangle(46, 0, Math.Max(0, Width - (card ? 112 : 46)), Height), textColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine);
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            if (RowIcon != null) Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            if (RowIcon != null) Invalidate();
         }
     }
 
@@ -140,6 +154,9 @@ public sealed partial class MainForm
         Point entranceDestination;
         int entranceDistance;
         public Color BorderAccent { get; set; }
+        public bool AnimateEntrance { get; init; } = true;
+        public int CornerRadius { get; init; } = 24;
+        public Action<Control>? TrackPopupProximity { get; init; }
 
         public RoundedPopupForm(Color accent)
         {
@@ -165,6 +182,7 @@ public sealed partial class MainForm
             int inset = (int)Math.Round(9 * DeviceDpi / 96d);
             Padding = new Padding(Math.Max(inset, Padding.Left), Math.Max(inset, Padding.Top),
                 Math.Max(inset, Padding.Right), Math.Max(inset, Padding.Bottom));
+            UpdateCornerRegion();
             base.OnLoad(e);
         }
 
@@ -176,15 +194,16 @@ public sealed partial class MainForm
             if (ClientSize.Width < 5 || ClientSize.Height < 5) return;
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             using var outline = RoundedPath(new Rectangle(1, 1, ClientSize.Width - 3, ClientSize.Height - 3),
-                (int)Math.Round(23 * DeviceDpi / 96d));
+                Math.Max(1, (int)Math.Round(CornerRadius * DeviceDpi / 96d) - 1));
             using var pen = new Pen(MixColors(BackColor, BorderAccent, .65), Math.Max(1.5f, DeviceDpi / 64f));
             e.Graphics.DrawPath(pen, outline);
         }
 
         protected override void OnShown(EventArgs e)
         {
-            if (Owner is MainForm launcher) launcher.TrackProximity(this);
-            if (!AnimatedRoundButton.ReducedMotion)
+            if (TrackPopupProximity != null) TrackPopupProximity(this);
+            else if (Owner is MainForm launcher) launcher.TrackProximity(this);
+            if (AnimateEntrance && !AnimatedRoundButton.ReducedMotion)
             {
                 entranceDestination = Location;
                 entranceDistance = (int)Math.Round(14 * DeviceDpi / 96d);
@@ -210,8 +229,13 @@ public sealed partial class MainForm
         protected override void OnSizeChanged(EventArgs e)
         {
             base.OnSizeChanged(e);
+            UpdateCornerRegion();
+        }
+
+        void UpdateCornerRegion()
+        {
             if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
-            using var path = RoundedPath(ClientRectangle, (int)Math.Round(24 * DeviceDpi / 96d));
+            using var path = RoundedPath(ClientRectangle, (int)Math.Round(CornerRadius * DeviceDpi / 96d));
             var previous = Region;
             Region = new Region(path);
             previous?.Dispose();

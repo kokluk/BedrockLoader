@@ -211,14 +211,8 @@ public sealed partial class MainForm
         var header = new Panel { Dock = DockStyle.Top, Height = 49, BackColor = Surface };
         nameCard.Location = new Point(0, 1);
         nameCard.Width = 220;
-        var close = new SymbolButton { Symbol = "close", AccessibleName = T("Close", "Kapat"), Dock = DockStyle.Right,
-            Width = 36, ForeColor = TextColor, BackColor = SurfaceAlt, CornerRadius = 18 };
-        var closeHost = new Panel { Dock = DockStyle.Right, Width = 36, Padding = new Padding(0, 1, 0, 12) };
-        closeHost.Controls.Add(close);
         header.Controls.Add(nameCard);
-        header.Controls.Add(closeHost);
         var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 0, 0), WrapContents = true };
-        close.Click += (_, _) => dialog.DialogResult = DialogResult.Cancel;
         var canvas = new PictureBox { Dock = DockStyle.Fill, BackColor = SurfaceAlt, Margin = Padding.Empty };
         var overlay = MakeButton(T("Overlay PNG", "Bindir"), OverlayPng, 136, "image-overlay");
         ApplyButtonPalette(overlay);
@@ -237,7 +231,10 @@ public sealed partial class MainForm
         bar.Controls.AddRange([model, erase, overlay, layerButton]);
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 53 };
         save.Dock = DockStyle.Right;
-        var saveHost = new Panel { Dock = DockStyle.Right, Width = 104, Padding = new Padding(0, 8, 0, 8) };
+        var saveHost = new Panel { Dock = DockStyle.Right, Width = 210, Padding = new Padding(0, 8, 0, 8) };
+        var cancel = MakeButton(T("Cancel", "Vazgeç"), () => dialog.DialogResult = DialogResult.Cancel, 104);
+        cancel.Dock = DockStyle.Fill;
+        saveHost.Controls.Add(cancel);
         saveHost.Controls.Add(save);
         bar.Dock = DockStyle.Fill;
         footer.Controls.Add(bar);
@@ -246,7 +243,7 @@ public sealed partial class MainForm
             <= footer.ClientSize.Width - saveHost.Width ? 53 : 99;
         footer.Resize += (_, _) => FitFooter();
         FitFooter();
-        dialog.CancelButton = close;
+        dialog.CancelButton = cancel;
         Rectangle Area()
         {
             int side = Math.Max(1, Math.Min(canvas.Width, canvas.Height) - 12);

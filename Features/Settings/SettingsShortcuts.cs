@@ -66,20 +66,7 @@ public sealed partial class MainForm
             layout.Controls.Add(control, 0, row);
             layout.SetColumnSpan(control, 2);
         }
-        var heading = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty };
-        var x = MakeShortcutClose(popup);
-        var headingText = WrappedText(title, 16, true);
-        headingText.Dock = DockStyle.Fill;
-        headingText.Padding = new Padding(0, 0, 44, 0);
-        heading.Controls.Add(headingText);
-        x.Dock = DockStyle.None;
-        x.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        void PlaceClose() => x.Location = new Point(Math.Max(0, heading.ClientSize.Width - x.Width), 2);
-        heading.Resize += (_, _) => PlaceClose();
-        heading.Controls.Add(x);
-        x.BringToFront();
-        PlaceClose();
-        Span(heading, 0, 44);
+        Span(WrappedText(title, 16, true), 0, 44);
         Span(WrappedText(description), 1, 42);
         int result = -1;
         for (int i = 0; i < choices.Length; i++)
@@ -110,19 +97,12 @@ public sealed partial class MainForm
             change.Dock = DockStyle.Fill;
             Span(change, choices.Length + 2, 46);
         }
-        popup.CancelButton = x;
-        if (!folderActions) popup.ClientSize = new Size(565, 248);
+        var cancel = MakeButton(T("Cancel", "Vazgeç"), () => popup.DialogResult = DialogResult.Cancel);
+        cancel.Anchor = AnchorStyles.Right;
+        Span(cancel, folderActions ? choices.Length + 3 : 2 + (choices.Length + 1) / 2, 44);
+        popup.CancelButton = cancel;
+        popup.ClientSize = folderActions ? new Size(480, 386) : new Size(565, 286);
         return popup.ShowDialog(this) == DialogResult.OK ? result : -1;
     }
 
-    SymbolButton MakeShortcutClose(Form popup)
-    {
-        var close = new SymbolButton { Symbol = "close", Dock = DockStyle.Right, Size = new Size(36, 36),
-            MinimumSize = new Size(36, 36),
-            CornerRadius = 18, AccessibleName = T("Close", "Kapat"),
-            ForeColor = lightMode ? Color.FromArgb(153, 28, 42) : Color.FromArgb(255, 129, 144),
-            BackColor = MixColors(Surface, Color.FromArgb(218, 55, 72), lightMode ? .16 : .25), Cursor = Cursors.Hand };
-        close.Click += (_, _) => popup.DialogResult = DialogResult.Abort;
-        return close;
-    }
 }
