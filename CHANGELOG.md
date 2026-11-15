@@ -1,3 +1,17 @@
+# BedrockLoader v0.17.17
+
+## Türkçe
+
+- **Başlangıçta çalıştır** ayarı Özelleştirme’ye ve kurulum sihirbazına eklendi. Varsayılan olarak kapalı.
+- Ayar açıkken Windows oturumu başlatıldığında BedrockLoader arka planda sistem tepsisine yerleşir. Tepsi simgesine çift tıklayarak pencereyi açabilirsin.
+
+## English
+
+- Added **Run at startup** to Customization and the setup wizard. It is off by default.
+- When enabled, BedrockLoader starts in the system tray when you sign in to Windows. Double-click the tray icon to open the window.
+
+<!-- end-release-notes -->
+
 # BedrockLoader v0.17.16
 
 ## Türkçe

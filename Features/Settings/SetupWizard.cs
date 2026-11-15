@@ -251,7 +251,8 @@ public sealed partial class MainForm
                 {
                     2 or 3 when page == 2 => 48,
                     4 when showPalette => PaletteHeight(),
-                    5 when page == 3 => (launcherBounds.Height < 590 ? 38 : 44) * customizationChoices.Length,
+                    5 when page == 3 => Math.Min(44, Math.Max(32, (layout.ClientSize.Height - layout.Padding.Vertical - 102) / customizationChoices.Length))
+                        * customizationChoices.Length,
                     6 when page == 1 => 176,
                     7 when page == 4 => 44 * discordChoices.Length,
                     _ => 0

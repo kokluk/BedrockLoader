@@ -25,6 +25,26 @@ public sealed partial class MainForm
         }
         if (e.Cancel || exitRequested || e.CloseReason != CloseReason.UserClosing || !settings.CloseToTray) return;
         e.Cancel = true;
+        ShowTrayIcon();
+        Hide();
+        if (!settings.TrayNoticeShown)
+        {
+            trayIcon!.ShowBalloonTip(4500, "BedrockLoader",
+                T("Still running in the system tray. Double-click the icon to reopen.",
+                    "Sistem tepsisinde çalışmaya devam ediyorum. Geri dönmek için simgeme çift tıkla."), ToolTipIcon.Info);
+            settings.TrayNoticeShown = true;
+            SaveSettings();
+        }
+    }
+
+    internal void StartInTray()
+    {
+        _ = Handle;
+        ShowTrayIcon();
+    }
+
+    void ShowTrayIcon()
+    {
         if (trayIcon == null)
         {
             var menu = new ContextMenuStrip();
@@ -34,21 +54,16 @@ public sealed partial class MainForm
             trayIcon.DoubleClick += (_, _) => RestoreFromTray();
         }
         trayIcon.Visible = true;
-        Hide();
-        if (!settings.TrayNoticeShown)
-        {
-            trayIcon.ShowBalloonTip(4500, "BedrockLoader",
-                T("Still running in the system tray. Double-click the icon to reopen.",
-                    "Sistem tepsisinde çalışmaya devam ediyorum. Geri dönmek için simgeme çift tıkla."), ToolTipIcon.Info);
-            settings.TrayNoticeShown = true;
-            SaveSettings();
-        }
     }
 
     void RestoreFromTray()
     {
         DisposeTray();
-        if (!Visible) Show();
+        if (!Visible)
+        {
+            ShowLauncherIntro();
+            Show();
+        }
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
         Activate();
         RefreshDownloadTaskbar();

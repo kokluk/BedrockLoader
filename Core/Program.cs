@@ -14,12 +14,13 @@ internal static class Program
     static extern bool PostMessage(nint window, int message, nint wParam, nint lParam);
 
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
+        bool startInTray = args.Contains("--start-in-tray", StringComparer.OrdinalIgnoreCase);
         using var instance = new Mutex(initiallyOwned: false, InstanceName, out bool firstInstance);
         if (!firstInstance)
         {
-            if (RestoreMessage != 0) PostMessage(0xffff, RestoreMessage, 0, 0);
+            if (!startInTray && RestoreMessage != 0) PostMessage(0xffff, RestoreMessage, 0, 0);
             return;
         }
         ApplicationConfiguration.Initialize();
@@ -36,6 +37,13 @@ internal static class Program
         };
         Application.SetDefaultFont(LauncherFont.Create(9));
         using var launcher = new MainForm();
+        if (startInTray)
+        {
+            launcher.StartInTray();
+            using var context = new ApplicationContext(launcher);
+            Application.Run(context);
+            return;
+        }
         launcher.ShowLauncherIntro();
         Application.Run(launcher);
     }

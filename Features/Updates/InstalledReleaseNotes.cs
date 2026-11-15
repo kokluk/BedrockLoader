@@ -30,6 +30,10 @@ public sealed partial class MainForm
         if (!upgraded) return;
         ShowThemedPopup(T($"What's new in {DisplayVersion}", $"{DisplayVersion} sürümündeki yenilikler"),
             T("""
+              Windows startup
+              • Run at startup is available in Customization and the setup wizard. It is off by default.
+              • When enabled, BedrockLoader starts in the system tray when you sign in to Windows.
+
               Setup wizard
               • On first launch, setup opens before the launcher. Six clickable steps cover welcome, profile, appearance, customization, Discord and review.
               • The wizard matches the launcher window and has feature cards, step icons, live theme previews and a Skip button.
@@ -47,6 +51,10 @@ public sealed partial class MainForm
               • Export checked mods to ZIP, one pack to MCPACK, multiple packs to MCADDON, or a selected Minecraft world to MCWORLD.
               """,
               """
+              Windows başlangıcı
+              • Başlangıçta çalıştır seçeneği Özelleştirme’ye ve kurulum sihirbazına eklendi. Varsayılan olarak kapalı.
+              • Açıldığında BedrockLoader, Windows oturumu başlarken sistem tepsisine yerleşir.
+
               Kurulum sihirbazı
               • İlk açılışta sihirbaz launcher’dan önce açılıyor. Hoş geldin, Profil, Görünüm, Özelleştirme, Discord ve Son Kontrol adımları tıklanabiliyor.
               • Sihirbaz launcher ile aynı boyutta açılıyor. Karşılama kartları, başlık simgeleri, canlı tema önizlemesi ve Atla düğmesi eklendi.

@@ -85,6 +85,10 @@ public sealed partial class MainForm
         var sounds = MakeChoice(T("Click sound", "Tıklama sesi"), settings.ClickSounds);
         var usage = MakeChoice(T("Show RAM usage", "RAM kullanımını göster"), settings.ShowUsage);
         var tray = MakeChoice(T("Minimize to system tray on close", "Kapatınca sistem tepsisine indir"), settings.CloseToTray);
+        bool startupEnabled = WindowsStartup.IsEnabled();
+        var startup = MakeChoice(T("Run at startup", "Başlangıçta çalıştır"), startupEnabled);
+        startup.AccessibleDescription = T("Starts BedrockLoader in the system tray when you sign in to Windows.",
+            "Windows oturumu açılınca BedrockLoader’ı sistem tepsisinde başlatır.");
         glow.AccessibleDescription = T("Highlights buttons as the pointer approaches.", "Fare yaklaşınca düğmeleri aydınlatır.");
         animation.AccessibleDescription = T("Animates presses and interface transitions.", "Düğme basışlarını ve arayüz geçişlerini hareketlendirir.");
         advanced.AccessibleDescription = T("Adds extra movement to icons.", "Simgelere ek hareket efektleri verir.");
@@ -109,11 +113,17 @@ public sealed partial class MainForm
             settings.ShowUsage = usage.Checked;
             if (usageBadge != null) usageBadge.Visible = settings.ShowUsage;
             settings.CloseToTray = tray.Checked;
+            if (startup.Checked != startupEnabled)
+            {
+                try { WindowsStartup.SetEnabled(startup.Checked); }
+                catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+                { ShowError(ex, T("Could not change Windows startup", "Windows başlangıç ayarı değiştirilemedi")); }
+            }
         };
-        PopupToggle[] choices = [glow, animation, advanced, sounds, usage, tray];
+        PopupToggle[] choices = [glow, animation, advanced, sounds, usage, tray, startup];
         if (styled)
         {
-            string[] icons = ["sun", "motion", "layers", "sound", "memory", "download"];
+            string[] icons = ["sun", "motion", "layers", "sound", "memory", "download", "update"];
             for (int i = 0; i < choices.Length; i++) StyleChoiceRow(choices[i], icons[i]);
         }
         return choices;
