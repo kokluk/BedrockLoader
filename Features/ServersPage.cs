@@ -271,7 +271,7 @@ public sealed partial class MainForm
 
     void ApplyLatencyPalette(Control badge, Label label)
     {
-        bool ready = Equals(badge.Tag, "server-latency-ready");
+        bool ready = badge.Tag is "server-latency-ready" or "usage-metric";
         Color green = lightMode ? Color.FromArgb(24, 105, 62) : Color.FromArgb(121, 226, 155);
         badge.BackColor = MixColors(SurfaceAlt, ready ? green : Accent, .15);
         label.ForeColor = ready ? green : Muted;

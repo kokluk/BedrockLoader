@@ -64,7 +64,7 @@ public sealed partial class MainForm : Form
     public MainForm()
     {
         settings = LoadSettings();
-        LauncherAppearance.SquareButtons = settings.SquareButtons ?? LauncherAppearance.IsFluent;
+        LauncherAppearance.SquareButtons = settings.SquareButtons ?? true;
         AnimatedRoundButton.AnimationsEnabled = settings.AnimationsEnabled;
         AnimatedRoundButton.AdvancedAnimationsEnabled = settings.AdvancedAnimationsEnabled;
         english = settings.Language == "EN";
@@ -155,9 +155,9 @@ public sealed partial class MainForm : Form
         var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Padding = new Padding(0, 20, 0, 20), Margin = Padding.Empty, Tag = "shell" };
         body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210)); body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         root.Controls.Add(body, 0, 1);
-        var nav = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 12, AutoScroll = false, Margin = new Padding(0, 0, 12, 0), Padding = new Padding(1, 0, 1, 0), Tag = "shell" };
+        var nav = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 13, AutoScroll = false, Margin = new Padding(0, 0, 12, 0), Padding = new Padding(1, 0, 1, 0), Tag = "shell" };
         nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        for (int row = 0; row < 11; row++) nav.RowStyles.Add(new RowStyle(SizeType.Absolute, row is 1 or 8 or 10 ? 16 : 42));
+        for (int row = 0; row < 12; row++) nav.RowStyles.Add(new RowStyle(SizeType.Absolute, row is 1 or 8 or 10 ? 16 : 42));
         nav.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         body.Controls.Add(nav, 0, 0);
         AddNav(nav, "Home", "", T("Home", "Ana ekran"));
@@ -174,6 +174,7 @@ public sealed partial class MainForm : Form
         Divider();
         AddNav(nav, "About", "", T("About", "Hakkında"));
         Divider();
+        AddNav(nav, "MinecraftUsage", "", T("Minecraft usage", "Minecraft kaynak kullanımı"));
         contentHost.Dock = DockStyle.Fill; contentHost.BackColor = Surface; contentHost.Tag = "page";
         contentHost.Margin = Padding.Empty; contentHost.Padding = new Padding(12, 13, 12, 12);
         MakeRounded(contentHost, LauncherAppearance.Radius(20, 8)); body.Controls.Add(contentHost, 1, 0);
@@ -418,10 +419,11 @@ public sealed partial class MainForm : Form
             string navKey = (string)button.Tag!;
             ApplyNavigationColor(button, navKey == (key switch { "CurseForge" => "Addons", "CurseWorlds" => "Worlds", "CurseShaders" => "Mods", "CurseSkins" => "Skins", _ => key }));
             button.Text = navKey == "CinnabarMods" ? T("Mods", "Modlar") : navKey == "Mods" && cinnabarMode ? T("Shaders", "Shaderlar") : NavText(navKey, "").Trim();
-            if (button is NavIconButton navIcon) navIcon.IconKey = navKey == "CinnabarMods" ? "Mods" : navKey == "Mods" && cinnabarMode ? "sun" : navKey;
-            if (navKey is "Addons" or "Skins" or "CinnabarMods")
+            if (button is NavIconButton navIcon) navIcon.IconKey = navKey == "MinecraftUsage" ? "memory" : navKey == "CinnabarMods" ? "Mods" : navKey == "Mods" && cinnabarMode ? "sun" : navKey;
+            if (navKey is "Addons" or "Skins" or "CinnabarMods" or "MinecraftUsage")
             {
-                bool visible = navKey == "CinnabarMods" ? cinnabarMode : !cinnabarMode;
+                bool visible = navKey == "CinnabarMods" ? cinnabarMode : !cinnabarMode &&
+                    (navKey != "MinecraftUsage" || settings.ShowMinecraftUsage);
                 button.Visible = visible;
                 if (button.Parent is TableLayoutPanel nav) nav.RowStyles[nav.GetRow(button)].Height = visible ? 42 : 0;
             }
@@ -463,6 +465,7 @@ public sealed partial class MainForm : Form
         switch (key)
         {
             case "Home": BuildComfortableHome(); break;
+            case "MinecraftUsage": BuildMinecraftUsagePage(); break;
             case "Mods": if (cinnabarMode) BuildCinnabarShaders(); else BuildModsPage(); break;
             case "CinnabarMods": BuildCinnabarMods(); break;
             case "Addons": BuildSoftAddons(); break;
@@ -494,6 +497,7 @@ public sealed partial class MainForm : Form
 
     string NavText(string key, string glyph)
     {
+        if (key == "MinecraftUsage") return T("Resource usage", "Kaynak kullanımı");
         string text = key switch { "Home" => T("Home", "Ana ekran"), "Mods" => T("Mods", "Modlar"), "Clients" => T("Client Manager", "Client Yöneticisi"), "Addons" => T("Packs", "Packler"), "Settings" => T("Settings", "Ayarlar"), "Skins" => T("Skins", "Skinler"), "Worlds" => T("Worlds", "Dünyalar"), "Servers" => T("Servers", "Sunucular"), "Logs" => T("Logs", "Kayıtlar"), _ => T("About", "Hakkında") };
         return text;
     }
@@ -1180,7 +1184,7 @@ public sealed partial class MainForm : Form
 
     void ApplyTheme()
     {
-        LauncherAppearance.SquareButtons = settings.SquareButtons ?? LauncherAppearance.IsFluent;
+        LauncherAppearance.SquareButtons = settings.SquareButtons ?? true;
         lightMode = EffectiveLightMode();
         ApplyThemePalette(); ApplyLightPalette();
         ApplyFluentSurfaces();
@@ -1217,7 +1221,7 @@ public sealed partial class MainForm : Form
         foreach (Control c in root.Controls)
         {
             if (c is Panel || c is TableLayoutPanel || c is FlowLayoutPanel) { if (Equals(c.Tag, "shell") || Equals(c.Tag, "traffic")) c.BackColor = Bg; else if (Equals(c.Tag, "settings-card")) c.BackColor = MixColors(Surface, SurfaceAlt, .48); else if (Equals(c.Tag, "card") || c is RoundedPanel) c.BackColor = SurfaceAlt; else c.BackColor = Surface; }
-            if (c.Tag is "server-latency" or "server-latency-ready" && c.Controls[0] is Label latency)
+            if (c.Tag is "server-latency" or "server-latency-ready" or "usage-metric" && c.Controls[0] is Label latency)
             {
                 ApplyLatencyPalette(c, latency);
                 continue;
@@ -1419,6 +1423,9 @@ public sealed partial class MainForm : Form
         public int? AppIconColor { get; set; }
         public bool? SquareButtons { get; set; }
         public bool ShowUsage { get; set; }
+        public bool ShowMinecraftUsage { get; set; }
+        public int MinecraftCpuLimit { get; set; }
+        public int MinecraftRamLimitMiB { get; set; }
         public bool FollowWindowsTheme { get; set; } = true;
         public bool CinnabarNightly { get; set; }
         public bool CinnabarNightlyNoticeShown { get; set; }

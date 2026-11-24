@@ -92,12 +92,15 @@ internal static class CurseForgeApi
     {
         using var all = await Request(http, key, $"categories?gameId={Game}", cancel);
         var categories = all.RootElement.GetProperty("data");
-        int classId = categories.EnumerateArray().Where(item => Text(item, "slug") == "maps")
+        int classId = categories.EnumerateArray()
+            .Where(item => item.TryGetProperty("isClass", out var isClass) && isClass.ValueKind == JsonValueKind.True &&
+                (Text(item, "slug").Equals("maps", StringComparison.OrdinalIgnoreCase) ||
+                 Text(item, "slug").Equals("worlds", StringComparison.OrdinalIgnoreCase)))
             .Select(item => Number(item, "id")).FirstOrDefault();
         if (classId <= 0) throw new InvalidDataException("Bedrock maps category is unavailable.");
-        using var maps = await Request(http, key, $"categories?gameId={Game}&classId={classId}", cancel);
-        return (classId, maps.RootElement.GetProperty("data").EnumerateArray()
-            .Where(item => Number(item, "id") > 0 && Number(item, "id") != classId && Text(item, "name").Length > 0)
+        return (classId, categories.EnumerateArray()
+            .Where(item => Number(item, "id") > 0 && Number(item, "id") != classId &&
+                Number(item, "classId") == classId && Text(item, "name").Length > 0)
             .Select(item => (Number(item, "id"), Text(item, "name"))).ToArray());
     }
 

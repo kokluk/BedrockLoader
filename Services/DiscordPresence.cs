@@ -158,13 +158,7 @@ public sealed partial class MainForm
             "realm" => en ? "On a Realm" : "Realm’de",
             _ => null
         };
-        string? name = info?.Kind switch
-        {
-            "local" or "solo" when options.ShowWorldName => info.World,
-            "server" or "realm" when options.ShowServer => info.Server,
-            _ => null
-        };
-        var parts = new[] { state, name, info?.Dimension, options.LocalName };
+        var parts = new[] { state, info?.Dimension, options.LocalName };
         return new(options.ShowVersion && game.Version is { } version ? $"Minecraft {version}" : "Minecraft",
             GamePresenceFrame.Text(string.Join(" · ", parts.Where(p => !string.IsNullOrWhiteSpace(p))), 128),
             options.ShowTime ? game.StartedUtc : null, image, options.SmallImage);
@@ -175,29 +169,23 @@ public sealed partial class MainForm
         var options = settings.Discord ?? new DiscordOptions();
         var enabled = MakeChoice(T("Enable Rich Presence", "Rich Presence’ı etkinleştir"), options.Enabled);
         var state = MakeChoice(T("Share in-game activity", "Oyun durumunu paylaş"), options.ShowGameState);
-        state.AccessibleDescription = T("Detailed activity requires the optional Onix presence plugin.",
-            "Ayrıntılı oyun durumu için isteğe bağlı Onix etkinlik eklentisi gerekir.");
-        var server = MakeChoice(T("Share server address or Realm name", "Sunucu adresini veya Realm adını paylaş"), options.ShowServer);
-        var world = MakeChoice(T("Share local world name", "Yerel dünya adını paylaş"), options.ShowWorldName);
+        state.AccessibleDescription = T("Detailed activity requires the optional activity mod.",
+            "Ayrıntılı oyun durumu için isteğe bağlı etkinlik modu gerekir.");
         var version = MakeChoice(T("Share Minecraft version", "Minecraft sürümünü paylaş"), options.ShowVersion);
         var time = MakeChoice(T("Share elapsed time", "Oyun süresini paylaş"), options.ShowTime);
         StyleChoiceRow(enabled, "discord");
         StyleChoiceRow(state, "display");
-        StyleChoiceRow(server, "Servers");
-        StyleChoiceRow(world, "Worlds");
         StyleChoiceRow(version, "game");
         StyleChoiceRow(time, "status");
         void RefreshAvailability()
         {
             state.Enabled = version.Enabled = time.Enabled = enabled.Checked;
-            world.Enabled = server.Enabled = enabled.Checked && state.Checked;
         }
         enabled.CheckedChanged += (_, _) => RefreshAvailability();
-        state.CheckedChanged += (_, _) => RefreshAvailability();
         RefreshAvailability();
         readChoices = () => options with { Enabled = enabled.Checked, ShowVersion = version.Checked, ShowTime = time.Checked,
-            ShowGameState = state.Checked, ShowWorldName = world.Checked, ShowServer = server.Checked };
-        return [enabled, state, version, server, world, time];
+            ShowGameState = state.Checked };
+        return [enabled, state, version, time];
     }
 
     void ConfigureDiscordPresence()
@@ -221,8 +209,6 @@ public sealed partial class MainForm
         public bool ShowVersion { get; init; } = true;
         public bool ShowTime { get; init; } = true;
         public bool ShowGameState { get; init; } = true;
-        public bool ShowServer { get; init; }
-        public bool ShowWorldName { get; init; }
         public string ApplicationId { get; init; } = DefaultDiscordApplicationId;
         public string LargeImage { get; init; } = "bedrockloader";
         public string SmallImage { get; init; } = "";

@@ -23,10 +23,12 @@ MainForm.PresenceSnapshot? Project(GamePresenceFrame? frame, MainForm.DiscordOpt
 Check(Project(null) is { Details: "Minecraft 1.26.20", State: null } basic && basic.StartedUtc == game.StartedUtc, "process-only fallback");
 Check(Project(new("menu"))?.State == "Main Menu" && Project(new("loading"), options with { English = false })?.State == "Dünya yükleniyor", "observed menu and loading localized");
 Check(Project(local)?.State == "Playing solo · Overworld" && Project(server)?.State == "On a multiplayer server · Nether", "legacy settings keep names private");
-Check(Project(local, options with { ShowWorldName = true })?.State?.Contains("My World") == true, "world name opt-in");
-Check(Project(server, options with { ShowServer = true })?.State?.Contains("private.example") == true, "server opt-in");
-Check(Project(new("realm", "End", Server: "My realm"), options with { ShowWorldName = true })?.State == "On a Realm · End", "Realm name follows server privacy");
-Check(Project(server, options with { ShowGameState = false, ShowServer = true, ShowTime = false, ShowVersion = false })
+var legacy = JsonSerializer.Deserialize<MainForm.DiscordOptions>("""{"ShowWorldName":true,"ShowServer":true}""")! with { English = true };
+Check(Project(local, legacy)?.State == "Playing solo · Overworld" &&
+    Project(server, legacy)?.State == "On a multiplayer server · Nether" &&
+    Project(new("realm", "End", Server: "My realm"), legacy)?.State == "On a Realm · End",
+    "legacy settings cannot share world, server or Realm names");
+Check(Project(server, options with { ShowGameState = false, ShowTime = false, ShowVersion = false })
     is { Details: "Minecraft", State: null, StartedUtc: null }, "independent sharing switches");
 Check(MainForm.MakePresence(options, null, server, true) == null &&
     MainForm.MakePresence(options, null, null, false)?.Details == "Main Menu", "game exit clears activity, startup idle preserved");

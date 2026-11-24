@@ -31,7 +31,7 @@ public sealed partial class MainForm
     {
         using var popup = new RoundedPopupForm(Accent)
         {
-            Text = T("CurseForge connection", "CurseForge bağlantısı"), FormBorderStyle = FormBorderStyle.None,
+            Text = "CurseForge API Key", FormBorderStyle = FormBorderStyle.None,
             StartPosition = FormStartPosition.CenterParent, ShowInTaskbar = false, BackColor = Surface,
             ClientSize = new Size(Math.Min(520, ClientSize.Width - 48), 260), Font = Font
         };
@@ -40,7 +40,7 @@ public sealed partial class MainForm
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        var title = WrappedText(T("CurseForge connection", "CurseForge bağlantısı"), 16, true); title.Dock = DockStyle.Fill;
+        var title = WrappedText("CurseForge API Key", 16, true); title.Dock = DockStyle.Fill;
         var header = new Panel { Dock = DockStyle.Fill, BackColor = Surface, Margin = Padding.Empty };
         header.Controls.Add(title);
         var help = WrappedText(T("Enter your CurseForge API key. It is stored encrypted for your Windows account.", "CurseForge API anahtarını gir. Anahtar, Windows hesabın için şifrelenerek saklanır.")); help.Dock = DockStyle.Fill;
@@ -49,7 +49,7 @@ public sealed partial class MainForm
         actions.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         var cancel = MakeButton(T("Cancel", "Vazgeç"), () => popup.DialogResult = DialogResult.Cancel); cancel.Dock = DockStyle.Fill;
-        var save = MakeButton(T("Connect", "Bağlan"), () => { }); save.Tag = "primary"; save.Dock = DockStyle.Fill;
+        var save = MakeButton(T("Save", "Kaydet"), () => { }); save.Tag = "primary"; save.Dock = DockStyle.Fill;
         ApplyButtonPalette(cancel); ApplyButtonPalette(save);
         save.Click += async (_, _) =>
         {
@@ -130,7 +130,7 @@ public sealed partial class MainForm
         var search = MakeTextBox(); search.BorderStyle = BorderStyle.None; search.Dock = DockStyle.Fill; search.PlaceholderText = T("Search packs…", "Paket ara…"); search.AccessibleName = T("Search CurseForge packs", "CurseForge paketlerinde ara");
         searchHost.Controls.Add(search);
         var find = MakeButton(T("Search", "Ara"), () => { }); find.Dock = DockStyle.Fill; find.Margin = new Padding(0, 0, 6, 6);
-        var connect = MakeButton(T("Connection", "Bağlantı"), () => { }); connect.Dock = DockStyle.Fill; connect.Margin = new Padding(0, 0, 0, 6); connect.Font = LauncherFont.Create(9);
+        var connect = MakeButton("API Key", () => { }); connect.Dock = DockStyle.Fill; connect.Margin = new Padding(0, 0, 0, 6); connect.Font = LauncherFont.Create(9);
         searchRow.Controls.Add(searchHost, 0, 0); searchRow.Controls.Add(find, 1, 0); searchRow.Controls.Add(connect, 2, 0);
         toolbar.Controls.Add(tabs, 0, 0); toolbar.Controls.Add(searchRow, 0, 1);
         var feedback = WrappedText(""); feedback.Dock = DockStyle.Fill;
@@ -157,7 +157,7 @@ public sealed partial class MainForm
             try
             {
                 string key = ReadCurseKey();
-                if (key.Length == 0) { feedback.Text = T("Use Connection to add your CurseForge API key.", "CurseForge API anahtarını eklemek için Bağlantı’yı aç."); return; }
+                if (key.Length == 0) { feedback.Text = T("Add a CurseForge key with API Key.", "CurseForge anahtarını API Key düğmesinden ekle."); return; }
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); timeout.CancelAfter(TimeSpan.FromSeconds(30));
                 if (worlds && category == 0)
                 {
@@ -218,7 +218,7 @@ public sealed partial class MainForm
                 position.Text = (offset / CurseForgeApi.PageSize + 1).ToString();
             }
             catch (OperationCanceledException) { if (Current() && request == requestGeneration) feedback.Text = T("Loading canceled or timed out. Try Search again.", "Yükleme zaman aşımına uğradı. Ara ile tekrar dene."); }
-            catch (HttpRequestException ex) { if (Current() && request == requestGeneration) feedback.Text = ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden ? T("API access failed. Check Connection.", "API erişimi reddedildi. Bağlantı’yı kontrol et.") : T("CurseForge could not be reached. Try again.", "CurseForge’a ulaşılamadı. Tekrar dene."); }
+            catch (HttpRequestException ex) { if (Current() && request == requestGeneration) feedback.Text = ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden ? T("API access denied. Check your API Key.", "API erişimi reddedildi. API Key düğmesinden anahtarını kontrol et.") : T("CurseForge could not be reached. Try again.", "CurseForge’a ulaşılamadı. Tekrar dene."); }
             catch { if (Current() && request == requestGeneration) feedback.Text = T("The pack list could not be loaded.", "Paket listesi yüklenemedi."); }
             finally { if (Current() && request == requestGeneration) { find.Enabled = true; previous.Enabled = offset > 0; next.Enabled = hasNext; } }
         }
@@ -231,6 +231,16 @@ public sealed partial class MainForm
         next.Click += async (_, _) => { if (!hasNext || offset >= 9998) return; offset += CurseForgeApi.PageSize; await Load(); };
         page.Controls.Add(toolbar, 0, 0); page.Controls.Add(feedback, 0, 1); page.Controls.Add(cards, 0, 2); page.Controls.Add(navigation, 0, 3); contentHost.Controls.Add(page);
         AddPageHeading("CurseForge", skins ? T("Discover Bedrock skin packs.", "Bedrock skin paketlerini keşfet.") : shaders ? T("Java shader packs for Cinnabar.", "Cinnabar için Java shader paketleri.") : worlds ? T("Discover Bedrock worlds.", "Bedrock dünyalarını keşfet.") : T("Discover Bedrock resource and behavior packs.", "Bedrock kaynak ve davranış paketlerini keşfet."));
+        if (worlds && pageHeadingPanel is { } heading)
+        {
+            var website = MakeButton(T("Open website", "Web sitesini aç"),
+                () => OpenUrl("https://www.curseforge.com/minecraft-bedrock/search?class=maps&page=1&pageSize=20"), 154, "external");
+            website.Height = 32;
+            void PlaceWebsite() => website.Location = new Point(Math.Max(0, heading.ClientSize.Width - website.Width), 3);
+            heading.Controls.Add(website);
+            heading.Resize += (_, _) => PlaceWebsite();
+            PlaceWebsite();
+        }
         BeginInvoke(new Action(async () => { if (Current()) await Load(); }));
     }
 

@@ -4,7 +4,7 @@
 
 BedrockLoader, **Minecraft Bedrock** ve **Cinnabar** için bir Windows başlatıcısı ve içerik yöneticisi. Ana ekrandan oyunlar arasında geçebilir, modlarını, paketlerini, skinlerini, dünyalarını ve sunucularını yönetebilirsin.
 
-[Windows x64 kurulumu ve sürüm notları](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.1) · [Değişiklik geçmişi](CHANGELOG.md)
+[Windows x64 kurulumu ve sürüm notları](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.2) · [Değişiklik geçmişi](CHANGELOG.md)
 
 ## Uygulama önizlemesi
 
@@ -30,14 +30,14 @@ Hazır temalar arasından seçim yap veya Material You renk paletiyle arayüzü 
 
 ## Kurulum
 
-1. [v0.18.1 sürüm sayfasını](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.1) aç.
-2. **Assets** bölümünden **BedrockLoader-Setup-v0.18.1-x64.exe** dosyasını indir ve çalıştır.
+1. [v0.18.2 sürüm sayfasını](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.2) aç.
+2. **Assets** bölümünden **BedrockLoader-Setup-v0.18.2-x64.exe** dosyasını indir ve çalıştır.
 3. İlk açılışta tema, animasyon, tıklama sesi ve Discord Rich Presence tercihlerini seç. İstersen ana ekrandaki selamlamada kullanılacak bir ad ekle.
 
-Kurulum paketi .NET çalışma zamanını içerir. Dosyayı doğrulamak istersen, aynı sürümdeki **SHA256SUMS-v0.18.1.txt** dosyasıyla karşılaştırabilirsin.
+Kurulum paketi .NET çalışma zamanını içerir. Dosyayı doğrulamak istersen, aynı sürümdeki **SHA256SUMS-v0.18.2.txt** dosyasıyla karşılaştırabilirsin.
 
 ```powershell
-Get-FileHash .\BedrockLoader-Setup-v0.18.1-x64.exe -Algorithm SHA256
+Get-FileHash .\BedrockLoader-Setup-v0.18.2-x64.exe -Algorithm SHA256
 ```
 
 ## Oyunlar ve içerik
@@ -66,7 +66,9 @@ Ana ekrandaki **Modloader’ı kur** düğmesi, onayından sonra modloader’ı 
 - **Özelleştirme → Launcher Ayarları** bölümünde görev çubuğu simgesini ve düğme biçimini seçebilirsin. Yuvarlak ve kare biçimler seçildiği anda görünür. **Vazgeç** önceki biçimi geri getirir.
 - Kurulum sihirbazını gelişmiş ayarlardaki **Kısayollar** üzerinden tekrar başlatabilirsin.
 - **Ayarları dışa aktar** ile ayarlarını ve kayıtlı sunucularını JSON olarak saklayabilirsin. **Tam yedeği dışa aktar** ile dünyaları, skinleri, paketleri, modları ve Cinnabar verilerini seçerek ZIP’e ekleyebilirsin. İçe aktarmada seçili öğeler işlenir ve mevcut oyun dosyaları korunur.
-- **Ayarlar → Discord RPC** üzerinden sürüm ve süre paylaşımını ayarlayabilir, yerel dünyaları algılayan tek DLL’lik etkinlik modunu kurabilirsin. Dünya adı varsayılan olarak gizlidir.
+- **Ayarlar → Discord RPC** üzerinden sürüm ve süre paylaşımını ayarlayabilir, yerel dünyaları algılayan tek DLL’lik etkinlik modunu kurabilirsin. Dünya adı, sunucu adresi ve Realm adı paylaşılmaz.
+- **Ayarlar → Özelleştirme → Minecraft kaynak kullanımı** seçeneği Minecraft modunun sol menüsüne canlı CPU ve RAM ölçümlerini ekler. Bildirim eşiklerini bu sayfadan ayarla. Bir eşik 0 ise o kaynak için bildirim gönderilmez.
+- **Dünyalar → CurseForge** ekranı, **API Key** ile kendi anahtarını Windows hesabına şifreli kaydeder. **Web sitesini aç** seçeneğiyle haritalara tarayıcıdan da bakabilirsin.
 - Kayıtlar son 300 satırı seçili arayüz dilinde tutar.
 
 Launcher kapatıldığında varsayılan olarak sistem tepsisine iner. İkinci kez başlatıldığında açık örneğin penceresi geri gelir.
@@ -85,14 +87,14 @@ Windows x64 kurulum paketi üretmek için **Inno Setup 6** gerekir. Gerekirse ko
 .\installer\build.ps1 -IsccPath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 ```
 
-Kurulum EXE’si **installer-output** klasörüne, bağımsız uygulama dosyaları **installer-payload-v0.18.1** klasörüne çıkar.
+Kurulum EXE’si **installer-output** klasörüne, bağımsız uygulama dosyaları **installer-payload-v0.18.2** klasörüne çıkar.
 
 ### Testler
 
 ```powershell
 dotnet run --project .\tests\PackLibrary.Tests -c Release
 dotnet run --project .\tests\BedrockServers.Tests -c Release
-dotnet run --project .\tests\ReleaseUpdates.Tests -c Release -- .\installer-payload-v0.18.1\BedrockLoader.exe
+dotnet run --project .\tests\ReleaseUpdates.Tests -c Release -- .\installer-payload-v0.18.2\BedrockLoader.exe
 ```
 
 Güncelleyici testi için önce kurulum derleme betiğini çalıştır. Test, verilen EXE’yi çalıştırmadan dosya doğrulamasında kullanır.

@@ -49,6 +49,26 @@ using (var handler = new FakeHandler(request =>
 using (var http = new HttpClient(handler))
     Assert((await CurseForgeApi.SearchAsync(http, "fixture-key", 6929, "test", 0, default)).Packs.Count == 1, "search client parses API response");
 
+using (var handler = new FakeHandler(request =>
+{
+    if (request.RequestUri!.AbsolutePath.EndsWith("/categories", StringComparison.Ordinal))
+        return Reply(Encoding.UTF8.GetBytes("""
+            {"data":[
+              {"id":10,"slug":"maps","isClass":false,"classId":6929,"name":"Other"},
+              {"id":6913,"slug":"Maps","isClass":true,"name":"Maps"},
+              {"id":20,"slug":"survival","isClass":false,"classId":6913,"name":"Survival"}
+            ]}
+            """), "application/json");
+    Assert(request.RequestUri.Query.Contains("classId=6913"), "search uses the Bedrock world class");
+    return Reply(Encoding.UTF8.GetBytes(Catalog(6913, website: "https://www.curseforge.com/minecraft-bedrock/maps/example")), "application/json");
+}))
+using (var http = new HttpClient(handler))
+{
+    var maps = await CurseForgeApi.WorldCategoriesAsync(http, "fixture-key", default);
+    Assert(maps.ClassId == 6913 && maps.Categories.SequenceEqual([(20, "Survival")]), "world class and its subcategories resolved from the Bedrock catalog");
+    Assert((await CurseForgeApi.SearchAsync(http, "fixture-key", maps.ClassId, "", 0, default)).Packs.Count == 1, "Bedrock map appears in search results");
+}
+
 byte[] Archive(string type, string path = "manifest.json")
 {
     using var memory = new MemoryStream();

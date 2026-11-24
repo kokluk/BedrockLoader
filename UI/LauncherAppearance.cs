@@ -9,7 +9,7 @@ internal static class LauncherAppearance
 #endif
 
     internal static int Radius(int original, int fluent) => IsFluent ? fluent : original;
-    internal static bool SquareButtons { get; set; } = IsFluent;
+    internal static bool SquareButtons { get; set; } = true;
 }
 
 public sealed partial class MainForm

@@ -42,6 +42,7 @@ public sealed partial class MainForm
         StartDiscordPresence();
         _ = Handle;
         ShowTrayIcon();
+        RefreshMinecraftUsageMonitoring();
     }
 
     void ShowTrayIcon()

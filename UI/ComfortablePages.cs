@@ -302,11 +302,7 @@ public sealed partial class MainForm
 
     void AddCurseForgeHeadingButton(string page)
     {
-        var curseForge = MakeButton("CurseForge", () =>
-        {
-            if (page == "CurseWorlds" && ReadCurseKey().Length == 0) OpenUrl("https://www.curseforge.com/minecraft-bedrock/search?class=maps");
-            else ShowPage(page);
-        }, 166, "external");
+        var curseForge = MakeButton("CurseForge", () => ShowPage(page), 166, "external");
         curseForge.Height = 32; curseForge.Font = LauncherFont.Create(9);
         if (pageHeadingPanel is { } heading)
         {

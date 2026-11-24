@@ -78,13 +78,18 @@ public sealed partial class MainForm
         Text = text, Checked = value, Dock = DockStyle.Fill, Cursor = Cursors.Hand
     };
 
-    PopupToggle[] MakeCustomizationChoices(out Action apply, bool previewMotion = false, bool styled = false)
+    PopupToggle[] MakeCustomizationChoices(out Action apply, bool previewMotion = false, bool styled = false, bool includeMinecraftUsage = false)
     {
         var glow = MakeShineToggle();
         var animation = MakeAnimationToggle(false);
         var advanced = MakeAnimationToggle(true);
         var sounds = MakeChoice(T("Click sound", "Tıklama sesi"), settings.ClickSounds);
         var usage = MakeChoice(T("Show RAM usage", "RAM kullanımını göster"), settings.ShowUsage);
+        var minecraftUsage = includeMinecraftUsage
+            ? MakeChoice(T("Minecraft resource usage", "Minecraft kaynak kullanımı"), settings.ShowMinecraftUsage) : null;
+        if (minecraftUsage != null)
+            minecraftUsage.AccessibleDescription = T("Adds CPU, RAM and alert settings to the Minecraft sidebar.",
+                "Minecraft sol menüsüne CPU, RAM ve uyarı ayarlarını ekler.");
         var tray = MakeChoice(T("Minimize to system tray on close", "Kapatınca sistem tepsisine indir"), settings.CloseToTray);
         bool startupEnabled = WindowsStartup.IsEnabled();
         var startup = MakeChoice(T("Run at startup", "Başlangıçta çalıştır"), startupEnabled);
@@ -112,6 +117,12 @@ public sealed partial class MainForm
             AnimatedRoundButton.AdvancedAnimationsEnabled = settings.AdvancedAnimationsEnabled = advanced.Checked;
             settings.ClickSounds = sounds.Checked;
             settings.ShowUsage = usage.Checked;
+            if (minecraftUsage != null)
+            {
+                settings.ShowMinecraftUsage = minecraftUsage.Checked;
+                UpdateModeNavigation(currentPage);
+                RefreshMinecraftUsageMonitoring();
+            }
             if (usageBadge != null) usageBadge.Visible = settings.ShowUsage;
             settings.CloseToTray = tray.Checked;
             if (startup.Checked != startupEnabled)
@@ -121,10 +132,12 @@ public sealed partial class MainForm
                 { ShowError(ex, T("Could not change Windows startup", "Windows başlangıç ayarı değiştirilemedi")); }
             }
         };
-        PopupToggle[] choices = [glow, animation, advanced, sounds, usage, tray, startup];
+        PopupToggle[] choices = minecraftUsage != null
+            ? [glow, animation, advanced, sounds, usage, tray, startup, minecraftUsage]
+            : [glow, animation, advanced, sounds, usage, tray, startup];
         if (styled)
         {
-            string[] icons = ["sun", "motion", "layers", "sound", "memory", "download", "update"];
+            string[] icons = ["sun", "motion", "layers", "sound", "memory", "download", "update", "game"];
             for (int i = 0; i < choices.Length; i++) StyleChoiceRow(choices[i], icons[i]);
         }
         return choices;
@@ -138,7 +151,7 @@ public sealed partial class MainForm
 
     void ShowCustomization()
     {
-        var choices = MakeCustomizationChoices(out var apply, styled: true);
+        var choices = MakeCustomizationChoices(out var apply, styled: true, includeMinecraftUsage: true);
         var launcherSettings = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 48, WrapContents = false };
         launcherSettings.Controls.Add(new AboutLogo { Size = new Size(32, 36), ForeColor = Accent });
         launcherSettings.Controls.Add(MakeButton(T("Launcher Settings", "Launcher Ayarları"),

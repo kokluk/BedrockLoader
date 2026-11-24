@@ -205,16 +205,41 @@ public sealed partial class MainForm
         palette.Controls.Add(wheel);
         palette.Controls.Add(hex);
         palette.Controls.Add(colorPreview);
-        var save = MakeButton(T("Save", "Kaydet"), () => dialog.DialogResult = DialogResult.OK, 96, "check-mark");
+        var save = MakeButton(T("Save", "Kaydet"), () => dialog.DialogResult = DialogResult.OK, 96);
         save.Tag = "primary";
         ApplyButtonPalette(save);
-        var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 47, ColumnCount = 4, RowCount = 1 };
+        var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 47, ColumnCount = 5, RowCount = 1 };
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 205));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        foreach (int width in new[] {94, 112, 104}) header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, width));
+        var actionWidths = new ColumnStyle[3];
+        for (int i = 0; i < actionWidths.Length; i++)
+        {
+            actionWidths[i] = new ColumnStyle(SizeType.Absolute, 112);
+            header.ColumnStyles.Add(actionWidths[i]);
+        }
         var cancel = MakeButton(T("Cancel", "Vazgeç"), () => dialog.DialogResult = DialogResult.Cancel, 104);
-        foreach (Control c in new Control[] {nameCard, model, cancel, save}) { c.Dock = DockStyle.Fill; header.Controls.Add(c); }
+        nameCard.Dock = DockStyle.Fill;
+        header.Controls.Add(nameCard, 0, 0);
+        Button[] headerActions = [model, cancel, save];
+        for (int i = 0; i < headerActions.Length; i++)
+        {
+            headerActions[i].Dock = DockStyle.Fill;
+            headerActions[i].Margin = new Padding(4, 0, 4, 7);
+            header.Controls.Add(headerActions[i], i + 2, 0);
+        }
+        void FitHeader()
+        {
+            int actionWidth = Math.Max((int)Math.Ceiling(112 * dialog.DeviceDpi / 96d),
+                headerActions.Max(b => TextRenderer.MeasureText(b.Text, b.Font).Width) + 60);
+            foreach (var style in actionWidths) style.Width = actionWidth;
+            header.ColumnStyles[0].Width = Math.Clamp(header.ClientSize.Width - 3 * actionWidth, 80,
+                (int)Math.Ceiling(205 * dialog.DeviceDpi / 96d));
+        }
+        header.Resize += (_, _) => FitHeader();
+        FitHeader();
         var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 0, 0), WrapContents = true };
         var canvas = new PictureBox { Dock = DockStyle.Fill, BackColor = SurfaceAlt, Margin = Padding.Empty };
+        MakeRounded(canvas, 14);
         var overlay = MakeButton(T("Overlay PNG", "Bindir"), OverlayPng, 136, "image-overlay");
         ApplyButtonPalette(overlay);
         bool showLayers = true;

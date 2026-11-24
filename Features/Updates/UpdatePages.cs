@@ -77,6 +77,7 @@ public sealed partial class MainForm
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        RefreshMinecraftUsageMonitoring();
         ShowInstalledReleaseNotes();
         await CheckUpdatesAsync();
         if (IsDisposed || !Visible || availableRelease is not { } release || !ReleaseUpdates.ShouldNotify(release)) return;
@@ -152,6 +153,7 @@ public sealed partial class MainForm
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         presenceLifetime.Cancel();
+        StopMinecraftUsageMonitoring();
         DisposeTray();
         updatesLifetime.Cancel(); updatesLifetime.Dispose(); base.OnFormClosed(e);
     }
