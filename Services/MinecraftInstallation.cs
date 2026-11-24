@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 
 namespace KoklukBedrockModloader;
 
@@ -24,7 +25,7 @@ public sealed partial class MainForm
 
     void RefreshMinecraftButton(Button button)
     {
-        button.Text = MinecraftInstallation.IsInstalled(settings.ContentPath)
+        button.Text = settings.UseMinecraftPreview && MinecraftInstallation.HasPreview() ? T("Launch Preview", "Önizlemeyi başlat") : MinecraftInstallation.IsInstalled(settings.ContentPath)
             ? T("Launch Minecraft", "Minecraft'ı başlat") : T("Install Minecraft", "Minecraft'ı yükle");
     }
 }
@@ -76,30 +77,47 @@ internal static class MinecraftInstallation
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-    static extern int GetPackageFamilyName(IntPtr process, ref uint length, StringBuilder? name);
+    static extern int GetPackageFamilyName(SafeProcessHandle process, ref uint length, StringBuilder? name);
 
-    internal sealed record RunningGame(DateTime? StartedUtc, string? Version);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern SafeProcessHandle OpenProcess(uint access, bool inherit, int pid);
 
-    internal static RunningGame? FindRunningGame(string contentPath)
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool QueryFullProcessImageName(SafeProcessHandle process, uint flags, StringBuilder name, ref int length);
+
+    internal sealed record RunningGame(int Pid, DateTime StartedUtc, string? Version);
+
+    internal static RunningGame? FindRunningGame(string contentPath, RunningGame? previous = null, string? modProfile = null)
     {
         IReadOnlyList<string>? installs = null;
         var candidates = new List<RunningGame>();
-        foreach (var process in Process.GetProcessesByName("Minecraft.Windows"))
+        foreach (string name in new[] { "Minecraft.Windows", "Minecraft", "MinecraftUWP", "Minecraft.Win10.DX11" })
+        foreach (var process in Process.GetProcessesByName(name))
         {
             using (process)
             {
                 try
                 {
-                    string? exe = null;
-                    try { exe = process.MainModule?.FileName; }
-                    catch (Win32Exception) { }
-                    if (!IsBedrockPackage(process))
+                    var started = process.StartTime.ToUniversalTime();
+                    if (previous?.Pid == process.Id && previous.StartedUtc == started && !process.HasExited)
+                    {
+                        candidates.Add(previous);
+                        continue;
+                    }
+                    using var handle = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, process.Id);
+                    if (handle.IsInvalid) continue;
+                    int length = 32768;
+                    var image = new StringBuilder(length);
+                    string? exe = QueryFullProcessImageName(handle, 0, image, ref length) ? image.ToString() : null;
+                    if (!IsBedrockPackage(handle))
                     {
                         if (exe is null) continue;
+                        bool fromProfile = name is ("Minecraft.Windows" or "Minecraft.Win10.DX11") &&
+                            string.Equals(Path.GetDirectoryName(exe), modProfile, StringComparison.OrdinalIgnoreCase);
+                        if (!fromProfile && name != "Minecraft.Windows") continue;
                         installs ??= FindGameDirectories(contentPath);
-                        if (!installs.Contains(Path.GetDirectoryName(exe), StringComparer.OrdinalIgnoreCase)) continue;
+                        if (!fromProfile && !installs.Contains(Path.GetDirectoryName(exe), StringComparer.OrdinalIgnoreCase)) continue;
                     }
-                    var started = process.StartTime.ToUniversalTime();
                     string? version = null;
                     if (exe is not null)
                     {
@@ -111,7 +129,7 @@ internal static class MinecraftInstallation
                         }
                         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
                     }
-                    if (!process.HasExited) candidates.Add(new RunningGame(started, version));
+                    if (!process.HasExited) candidates.Add(new RunningGame(process.Id, started, version));
                 }
                 catch (Exception ex) when (ex is InvalidOperationException or Win32Exception or UnauthorizedAccessException) { }
             }
@@ -119,16 +137,16 @@ internal static class MinecraftInstallation
         return candidates.OrderByDescending(game => game.StartedUtc).FirstOrDefault();
     }
 
-    static bool IsBedrockPackage(Process process)
+    static bool IsBedrockPackage(SafeProcessHandle handle)
     {
         try
         {
             uint length = 0;
-            IntPtr handle = process.Handle;
             if (GetPackageFamilyName(handle, ref length, null) != 122 || length is 0 or > 256) return false;
             var family = new StringBuilder((int)length);
             return GetPackageFamilyName(handle, ref length, family) == 0 &&
-                Families.Contains(family.ToString(), StringComparer.OrdinalIgnoreCase);
+                (Families.Contains(family.ToString(), StringComparer.OrdinalIgnoreCase) ||
+                 family.ToString().Equals("Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe", StringComparison.OrdinalIgnoreCase));
         }
         catch (Win32Exception) { return false; }
     }
@@ -141,20 +159,28 @@ internal static class MinecraftInstallation
             [MarshalAs(UnmanagedType.LPWStr)] string? arguments, uint options, out uint processId);
     }
 
-    internal static bool TryLaunch(string contentPath)
+    const string PreviewFamily = "Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe";
+    internal static bool HasPreview()
+    {
+        uint count = 0, length = 0;
+        return GetPackagesByPackageFamily(PreviewFamily, ref count, IntPtr.Zero, ref length, IntPtr.Zero) == 122 && count > 0;
+    }
+
+    internal static bool TryLaunch(string contentPath, bool preview = false)
     {
         var type = Type.GetTypeFromCLSID(new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C"));
         object? instance = null;
         try
         {
             if (type is not null && (instance = Activator.CreateInstance(type)) is IApplicationActivationManager manager)
-                foreach (string family in Families)
+                foreach (string family in preview ? new[] {PreviewFamily} : Families)
                     if (manager.ActivateApplication(family + "!App", null, 0, out uint processId) >= 0 && processId != 0)
                         return true;
         }
         catch (COMException) { }
         finally { if (instance is not null) Marshal.ReleaseComObject(instance); }
 
+        if (preview) return false;
         foreach (string directory in FindGameDirectories(contentPath))
         {
             string executable = Path.Combine(directory, "Minecraft.Windows.exe");

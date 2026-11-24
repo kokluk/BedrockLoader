@@ -35,6 +35,10 @@ internal static class SoftIcons
                     graphics.DrawEllipse(pen, 4, 4, 11, 11);
                     Line(13.5f, 13.5f, 20, 20);
                     break;
+                case "eyedropper":
+                    Line(14, 5, 19, 10); Line(17, 4, 20, 7);
+                    Line(15, 7, 5, 17); Line(18, 10, 8, 20); Line(5, 17, 4, 21); Line(4, 21, 8, 20);
+                    break;
                 case "trash":
                     Shape(Round(6, 7, 12, 14, 2));
                     Line(4, 7, 20, 7); Line(9, 4, 15, 4); Line(10, 10, 10, 17); Line(14, 10, 14, 17);

@@ -32,10 +32,10 @@ public sealed partial class MainForm
             light.Invalidate();
         };
         const int advancedRow = 4, separatorRow = 5, rpcRow = 6, shortcutsRow = 7;
-        const int removalRow = shortcutsRow + 1;
+        const int cleanupRow = shortcutsRow + 1, removalRow = cleanupRow + 1;
         var layout = new RoundedSettingsList(this) { Height = 640, ColumnCount = 2, RowCount = removalRow + 1, Padding = new Padding(16, 14, 16, 14), Tag = "settings-card" };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140)); layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        int[] rowHeights = [52, 52, 0, 58, 56, 1, 58, 58, 104];
+        int[] rowHeights = [52, 52, 0, 58, 56, 1, 58, 58, 58, 104];
         foreach (int height in rowHeights)
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
         var advancedSeparator = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty, TabStop = false, Tag = "settings-card" };
@@ -122,6 +122,12 @@ public sealed partial class MainForm
         wizard.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         wizard.Margin = new Padding(0, 8, 3, 0);
         layout.Controls.Add(wizard, 1, shortcutsRow);
+        layout.Controls.Add(MakeLabel(T("Updates", "Güncellemeler"), 10, true), 0, cleanupRow);
+        var cleanup = MakeButton(T("Clean old update files", "Eski güncelleme dosyalarını temizle"),
+            () => OfferUpdateCleanup(), shortcutWidth, "trash");
+        cleanup.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        cleanup.Margin = new Padding(0, 8, 3, 0);
+        layout.Controls.Add(cleanup, 1, cleanupRow);
         layout.Controls.Add(MakeLabel(T("Warning", "Uyarı"), 10, true), 0, removalRow);
         var removal = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Tag = "settings-card", Margin = Padding.Empty };
         removal.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
@@ -140,6 +146,12 @@ public sealed partial class MainForm
             if (label is Label) { label.Anchor = AnchorStyles.Top | AnchorStyles.Left; label.Margin = new Padding(12, 10, 8, 0); }
         RefreshSettingsRows();
         contentHost.Controls.Add(new ThemedScrollPanel(this, layout) { Dock = DockStyle.Fill });
+        if (settings.UpdateCleanupPending && IsHandleCreated)
+            BeginInvoke(new Action(() =>
+            {
+                if (!IsDisposed && currentPage == "Settings" && settings.UpdateCleanupPending)
+                    OfferUpdateCleanup(automatic: true);
+            }));
     }
 
     sealed class RoundedSettingsList : TableLayoutPanel
@@ -151,7 +163,7 @@ public sealed partial class MainForm
             this.owner = owner;
             DoubleBuffered = true;
             ResizeRedraw = true;
-            owner.MakeRounded(this, 19);
+            owner.MakeRounded(this, LauncherAppearance.Radius(19, 8));
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -160,7 +172,7 @@ public sealed partial class MainForm
             if (Width < 20 || Height < 20) return;
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using var outline = new Pen(MixColors(BackColor, owner.TextColor, .12));
-            using var path = SoftIcons.Round(1, 1, Width - 3, Height - 3, 18);
+            using var path = SoftIcons.Round(1, 1, Width - 3, Height - 3, LauncherAppearance.Radius(18, 7));
             e.Graphics.DrawPath(outline, path);
         }
     }

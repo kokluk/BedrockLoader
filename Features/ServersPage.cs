@@ -116,8 +116,8 @@ public sealed partial class MainForm
                 actions.Controls.Add(editButton);
                 if (canAdd)
                 {
-                    var remove = new SymbolButton { Symbol = "trash", Width = 34, Height = editButton.Height,
-                        Margin = new Padding(3, 5, 3, 5), AccessibleName = T("Delete server", "Sunucuyu sil") };
+                    var remove = new SymbolButton { Symbol = "trash", Size = new Size(editButton.Height, editButton.Height),
+                        Margin = new Padding(3, 0, 3, 0), Cursor = Cursors.Hand, AccessibleName = T("Delete server", "Sunucuyu sil") };
                     remove.Click += (_, _) =>
                     {
                         if (ShowThemedPopup(T("Delete server", "Sunucuyu sil"), server.Name, true, T("Delete", "Sil")) != DialogResult.Yes) return;

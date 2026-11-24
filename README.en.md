@@ -4,7 +4,7 @@
 
 BedrockLoader is a Windows launcher and content manager for **Minecraft Bedrock** and **Cinnabar**. Switch between clients from the home screen and manage your mods, packs, skins, worlds, and servers in one place.
 
-[Windows x64 installer and release notes](https://github.com/kokluk/Bedrockloader/releases/tag/v0.17.17) · [Changelog (Turkish)](CHANGELOG.md)
+[Windows x64 installer and release notes](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.1) · [Changelog (Turkish)](CHANGELOG.md)
 
 ## App preview
 
@@ -30,14 +30,14 @@ Choose a preset theme or customize the interface with the Material You color pal
 
 ## Installation
 
-1. Open the [v0.17.17 release](https://github.com/kokluk/Bedrockloader/releases/tag/v0.17.17).
-2. Download and run **BedrockLoader-Setup-v0.17.17-x64.exe** from **Assets**.
+1. Open the [v0.18.1 release](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.1).
+2. Download and run **BedrockLoader-Setup-v0.18.1-x64.exe** from **Assets**.
 3. Choose your theme, effects, and Discord Rich Presence preferences in the setup wizard. A name for the home screen greeting is optional.
 
-The installer includes the .NET runtime. To verify the download, compare the output below with **SHA256SUMS-v0.17.17.txt** from the same release.
+The installer includes the .NET runtime. To verify the download, compare the output below with **SHA256SUMS-v0.18.1.txt** from the same release.
 
 ```powershell
-Get-FileHash .\BedrockLoader-Setup-v0.17.17-x64.exe -Algorithm SHA256
+Get-FileHash .\BedrockLoader-Setup-v0.18.1-x64.exe -Algorithm SHA256
 ```
 
 ## Games and content
@@ -54,16 +54,21 @@ CurseForge catalogs are available for packs, worlds, skins, and Cinnabar shaders
 
 Install Minecraft for Windows through the Microsoft Store or Xbox app. The Cinnabar Mods page manages personal WASM files. Review and grant mod permissions in Cinnabar. Logs and available crash reports can be exported as ZIP files.
 
+## Minecraft mods
+
+Use **Install modloader** on Home to download the modloader to the Minecraft Content folder after confirmation. Use the **Mods** page to add local DLL files.
+
 ## Settings and backups
 
-- **Customization** controls glow, animations, click sounds, RAM indicators, system tray behavior, and Discord Rich Presence.
-- **Show advanced settings** opens RPC settings, backups, the game folder, and shortcuts. You can reopen the setup wizard from **Shortcuts**.
+- Open **Customization → Launcher Settings** to choose the taskbar icon and preview round or square buttons. Cancel restores the previous shape.
+- **Settings → Discord RPC** controls version and playtime sharing and can install a single-DLL activity mod for local worlds. World names are private by default.
+- You can reopen the setup wizard from **Shortcuts** in advanced settings.
 - Export settings and saved servers as JSON, or choose game content to include in a full ZIP backup. Import processes the selected items and preserves existing game files.
 - The launcher keeps the latest 300 log lines. Closing the launcher sends it to the system tray by default. Opening it again restores the existing window.
 
 ## Build from source
 
-On Windows, run this from the repository root with the **.NET 8 SDK** installed.
+On Windows, run this from the repository root with the **.NET 10 SDK** installed.
 
 ```powershell
 dotnet build .\KoklukBedrockModloader.csproj -c Release
@@ -75,14 +80,14 @@ To build the Windows x64 installer, install **Inno Setup 6** and adjust the comp
 .\installer\build.ps1 -IsccPath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 ```
 
-The installer is written to **installer-output** and the standalone application to **installer-payload-v0.17.17**.
+The installer is written to **installer-output** and the standalone application to **installer-payload-v0.18.1**.
 
 ### Tests
 
 ```powershell
 dotnet run --project .\tests\PackLibrary.Tests -c Release
 dotnet run --project .\tests\BedrockServers.Tests -c Release
-dotnet run --project .\tests\ReleaseUpdates.Tests -c Release -- .\installer-payload-v0.17.17\BedrockLoader.exe
+dotnet run --project .\tests\ReleaseUpdates.Tests -c Release -- .\installer-payload-v0.18.1\BedrockLoader.exe
 ```
 
 Build the installer payload before running the updater test. The test uses the executable for file verification.

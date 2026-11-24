@@ -39,6 +39,7 @@ public sealed partial class MainForm
 
     internal void StartInTray()
     {
+        StartDiscordPresence();
         _ = Handle;
         ShowTrayIcon();
     }

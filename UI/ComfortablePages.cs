@@ -136,6 +136,24 @@ public sealed partial class MainForm
         foreach (var shortcut in new[] { installModloader, compare, explain, cinnabarUpdates, play }) shortcut.MonochromeIcon = true;
         cinnabarPlayButton = play;
         shortcuts.Controls.Add(play);
+        var gameVersion = MakeThemeCombo(235);
+        gameVersion.AccessibleName = T("Minecraft version", "Minecraft sürümü");
+        gameVersion.Visible = false;
+        shortcuts.Controls.Add(gameVersion);
+        if (MinecraftInstallation.HasPreview())
+        {
+            if (MinecraftInstallation.IsInstalled(settings.ContentPath))
+            {
+                gameVersion.Items.AddRange([T("Release", "Final"), T("Preview", "Önizleme")]);
+                gameVersion.SelectedIndex = settings.UseMinecraftPreview ? 1 : 0;
+                gameVersion.SelectedIndexChanged += (_, _) =>
+                {
+                    settings.UseMinecraftPreview = gameVersion.SelectedIndex == 1;
+                    SaveSettings();
+                    RefreshMinecraftButton(launch);
+                };
+            }
+        }
         var channel = BuildCinnabarChannelSelector();
         var installedChannel = MakeLabel("");
         cinnabarChannelLabel = installedChannel;
@@ -160,6 +178,7 @@ public sealed partial class MainForm
             minecraftLaunchButton = cinnabarMode ? null : launch;
             cinnabarUpdates.Visible = channel.Visible = installedChannel.Visible = cinnabarMode;
             if (cinnabarMode) installedChannel.Text = CinnabarChannelDescription();
+            gameVersion.Visible = !cinnabarMode && gameVersion.Items.Count > 1;
             counts.Visible = !cinnabarMode;
             cinnabarCounts.Visible = cinnabarMode;
             installModloader.Visible = !cinnabarMode;
@@ -283,7 +302,11 @@ public sealed partial class MainForm
 
     void AddCurseForgeHeadingButton(string page)
     {
-        var curseForge = MakeButton("CurseForge", () => ShowPage(page), 166, "external");
+        var curseForge = MakeButton("CurseForge", () =>
+        {
+            if (page == "CurseWorlds" && ReadCurseKey().Length == 0) OpenUrl("https://www.curseforge.com/minecraft-bedrock/search?class=maps");
+            else ShowPage(page);
+        }, 166, "external");
         curseForge.Height = 32; curseForge.Font = LauncherFont.Create(9);
         if (pageHeadingPanel is { } heading)
         {
@@ -317,7 +340,12 @@ public sealed partial class MainForm
         links.Controls.AddRange([source,
             MakeButton(T("Report a bug", "Hata Bildir"), () => OpenUrl(repository + "/issues/new"), 135, "About"),
             MakeButton(T("Suggest an idea", "Öneri"), () => OpenUrl(repository + "/issues/new?title=Feature%20request%3A%20"), 145, "external")]);
-        foreach (Control link in links.Controls) link.Margin = new Padding(4, 0, 4, 0);
+        foreach (var link in links.Controls.OfType<AnimatedRoundButton>())
+        {
+            if (link != source) link.Tag = "card-button";
+            link.Margin = new Padding(4, 0, 4, 0);
+            ApplyButtonPalette(link);
+        }
         layout.Controls.Add(logo, 0, 0); layout.Controls.Add(title, 0, 1); layout.Controls.Add(description, 0, 2); layout.Controls.Add(version, 0, 3); layout.Controls.Add(links, 0, 5);
         void FitAbout()
         {

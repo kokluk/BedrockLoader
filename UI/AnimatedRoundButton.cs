@@ -35,16 +35,25 @@ public sealed partial class MainForm
             Invalidate();
         }
         double revealAmount = 1;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public double RevealAmount { get => revealAmount; set { revealAmount = Math.Clamp(value, 0, 1); Invalidate(); } }
         double revealExpansion = 1;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public double RevealExpansion { get => revealExpansion; set { revealExpansion = Math.Clamp(value, 0, 1.08); Invalidate(); } }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         internal bool HasRevealAnimation { get; set; }
         double revealTextAmount = 1;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public double RevealTextAmount { get => revealTextAmount; set { revealTextAmount = Math.Clamp(value, 0, 1); Invalidate(); } }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int CornerRadius { get; set; } = 18;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color FocusBorderColor { get; set; } = Color.Empty;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string? LeadingIcon { get; set; }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool MonochromeIcon { get; set; }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool Outline { get; set; }
         protected double HoverAmount => hoverAmount;
 
@@ -231,9 +240,11 @@ public sealed partial class MainForm
             float insetX = Math.Max(0.5f, 1 + amount * 2.5f), insetY = Math.Max(0.5f, 1 + amount * 1.2f);
             float shapeWidth = Math.Min(Width - 1, (Width - insetX * 2) * (float)(0.90 + 0.10 * revealExpansion));
             float shapeHeight = Math.Min(Height - 1, (Height - insetY * 2) * (float)(0.60 + 0.40 * revealExpansion));
+            float shapeRadius = this is MaterialColorButton ? Math.Max(4, CornerRadius - amount * 6)
+                : LauncherAppearance.SquareButtons ? 4 : Math.Min(18, Math.Max(4, Height / 2f - amount * 6));
             using var path = SoftIcons.Round((Width - shapeWidth) / 2, (Height - shapeHeight) / 2,
                 Math.Max(1, shapeWidth), Math.Max(1, shapeHeight),
-                Math.Max(4, CornerRadius - amount * 6));
+                shapeRadius);
             var color = Blend(paintedBackground, ControlPaint.Light(paintedBackground, 0.14f), hoverAmount);
             color = Blend(color, Blend(paintedBackground, ForeColor, .12), pressAmount);
             color = Blend(Parent?.BackColor ?? BackColor, color, revealAmount);

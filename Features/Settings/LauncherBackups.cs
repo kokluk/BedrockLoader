@@ -19,7 +19,7 @@ public sealed partial class MainForm
     sealed record PortableSettings(int Format, string Language, string Theme, string MaterialColor, bool Light,
         bool WindowsTheme, bool Tray, bool Glow, bool Animations, bool Advanced, DiscordOptions Discord, List<SavedServer> Servers,
         BackupParts? Included = null, bool? ClickSounds = null, bool? ShowUsage = null, string? LocalName = null,
-        string? AppIconSymbol = null, int? AppIconColor = null);
+        string? AppIconSymbol = null, int? AppIconColor = null, bool? SquareButtons = null);
 
     PortableSettings SnapshotSettings(BackupParts parts)
     {
@@ -27,7 +27,7 @@ public sealed partial class MainForm
         return new(1, source.Language, source.Theme, source.MaterialYouColor, source.LightMode, source.FollowWindowsTheme,
             source.CloseToTray, source.ShinyHomeIcons, source.AnimationsEnabled, source.AdvancedAnimationsEnabled, source.Discord,
             parts.HasFlag(BackupParts.Servers) ? [.. settings.Servers] : [], parts, source.ClickSounds, source.ShowUsage,
-            NormalizeLocalName(source.LocalName), source.AppIconSymbol, source.AppIconColor);
+            NormalizeLocalName(source.LocalName), source.AppIconSymbol, source.AppIconColor, source.SquareButtons);
     }
 
     static PortableSettings ReadPortableSettings(Stream stream)
@@ -76,6 +76,7 @@ public sealed partial class MainForm
             settings.ClickSounds = saved.ClickSounds ?? settings.ClickSounds;
             settings.ShowUsage = saved.ShowUsage ?? settings.ShowUsage;
             if (saved.LocalName != null) settings.LocalName = NormalizeLocalName(saved.LocalName);
+            settings.SquareButtons = saved.SquareButtons ?? settings.SquareButtons;
             if (saved.AppIconSymbol != null)
             {
                 settings.AppIconSymbol = AppIconSymbols.Contains(saved.AppIconSymbol) ? saved.AppIconSymbol : "wolf";

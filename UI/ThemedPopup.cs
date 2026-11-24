@@ -2,7 +2,7 @@ namespace KoklukBedrockModloader;
 
 public sealed partial class MainForm
 {
-    DialogResult ShowThemedPopup(string title, string message, bool confirmation = false, string? confirmLabel = null, bool destructive = false, string? cancelLabel = null)
+    DialogResult ShowThemedPopup(string title, string message, bool confirmation = false, string? confirmLabel = null, bool destructive = false, string? cancelLabel = null, Form? owner = null)
     {
         using var popup = new RoundedPopupForm(Accent)
         {
@@ -39,12 +39,12 @@ public sealed partial class MainForm
         layout.Controls.Add(heading, 0, 0); layout.Controls.Add(body, 0, 1); layout.Controls.Add(actions, 0, 2);
         card.Controls.Add(layout);
         popup.Shown += (_, _) => cancel.Focus();
-        return popup.ShowDialog(this);
+        return popup.ShowDialog(owner ?? this);
     }
 
     RoundedPanel WrapPopupInput(TextBox input)
     {
-        var field = new RoundedPanel { BackColor = SurfaceAlt, CornerRadius = 13, Padding = new Padding(12, 7, 12, 0) };
+        var field = new RoundedPanel { InputShape = true, BackColor = SurfaceAlt, CornerRadius = 13, Padding = new Padding(12, 7, 12, 0) };
         input.BorderStyle = BorderStyle.None;
         input.Dock = DockStyle.Fill;
         field.Controls.Add(input);
@@ -54,7 +54,7 @@ public sealed partial class MainForm
         field.Paint += (_, e) =>
         {
             if (field.Width < 4 || field.Height < 4) return;
-            using var path = RoundedPath(new Rectangle(1, 1, field.Width - 3, field.Height - 3), field.CornerRadius);
+            using var path = RoundedPath(new Rectangle(1, 1, field.Width - 3, field.Height - 3), field.PaintRadius);
             using var pen = new Pen(input.Focused ? Accent : MixColors(SurfaceAlt, TextColor, .18), input.Focused ? 1.5f : 1f);
             e.Graphics.DrawPath(pen, path);
         };
@@ -65,10 +65,16 @@ public sealed partial class MainForm
     {
         System.Windows.Forms.Timer? slideTimer;
         float position;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         internal Color AccentColor { get; set; } = accent;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         internal Color TrackColor { get; set; } = surface;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         internal bool PlaySoundOnClick { get; set; } = true;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         internal string? RowIcon { get; set; }
+
+        protected override Cursor DefaultCursor => Cursors.Hand;
 
         protected override void OnClick(EventArgs e) { if (PlaySoundOnClick) PlayClick(this); base.OnClick(e); }
 
@@ -111,7 +117,7 @@ public sealed partial class MainForm
             Color textColor = Enabled ? ForeColor : MixColors(BackColor, ForeColor, .52);
             if (RowIcon is { } icon && Width > 2 && Height > 2)
             {
-                using var row = RoundedPath(new Rectangle(1, 1, Width - 3, Height - 3), 14);
+                using var row = RoundedPath(new Rectangle(1, 1, Width - 3, Height - 3), LauncherAppearance.Radius(14, 6));
                 bool hot = Enabled && ClientRectangle.Contains(PointToClient(Cursor.Position));
                 using var background = new SolidBrush(MixColors(BackColor, AccentColor, hot ? .14 : .07));
                 using var border = new Pen(Focused ? AccentColor : MixColors(BackColor, ForeColor, .12));
@@ -153,9 +159,13 @@ public sealed partial class MainForm
         readonly System.Diagnostics.Stopwatch entranceClock = new();
         Point entranceDestination;
         int entranceDistance;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color BorderAccent { get; set; }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool AnimateEntrance { get; init; } = true;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int CornerRadius { get; init; } = 24;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Action<Control>? TrackPopupProximity { get; init; }
 
         public RoundedPopupForm(Color accent)
@@ -194,7 +204,7 @@ public sealed partial class MainForm
             if (ClientSize.Width < 5 || ClientSize.Height < 5) return;
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             using var outline = RoundedPath(new Rectangle(1, 1, ClientSize.Width - 3, ClientSize.Height - 3),
-                Math.Max(1, (int)Math.Round(CornerRadius * DeviceDpi / 96d) - 1));
+                Math.Max(1, (int)Math.Round(LauncherAppearance.Radius(CornerRadius, 8) * DeviceDpi / 96d) - 1));
             using var pen = new Pen(MixColors(BackColor, BorderAccent, .65), Math.Max(1.5f, DeviceDpi / 64f));
             e.Graphics.DrawPath(pen, outline);
         }
@@ -235,7 +245,7 @@ public sealed partial class MainForm
         void UpdateCornerRegion()
         {
             if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
-            using var path = RoundedPath(ClientRectangle, (int)Math.Round(CornerRadius * DeviceDpi / 96d));
+            using var path = RoundedPath(ClientRectangle, (int)Math.Round(LauncherAppearance.Radius(CornerRadius, 8) * DeviceDpi / 96d));
             var previous = Region;
             Region = new Region(path);
             previous?.Dispose();

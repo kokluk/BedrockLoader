@@ -6,13 +6,13 @@
 - Windows'un açık/koyu uygulama temasını otomatik izleyen kurulum ve kaldırma sihirbazı; koyu görünümde koyu gri zemin (#202020).
 - Başlat menüsü kısayolu; isteğe bağlı masaüstü kısayolu.
 - Windows uygulama listesinden kaldırma desteği.
-- .NET 8 çalışma zamanı pakete dahildir; ayrıca .NET kurulması gerekmez.
+- .NET 10 çalışma zamanı pakete dahildir; ayrıca .NET kurulması gerekmez.
 - Minecraft modları, Content klasörüne ayrıca kurulan modloader ve AppData ayarları kaldırma sırasında silinmez.
 - Harici modloader DLL'i pakete dahil değildir; uygulamadaki izinli kurulum akışı geçerlidir.
 
 ## Yeniden üretme
 
-Windows'ta .NET 8 SDK ve Inno Setup 6.7.3 veya uyumlu sürümü gerekir. Proje kökünden:
+Windows'ta .NET 10 SDK ve Inno Setup 6.7.3 veya uyumlu sürümü gerekir. Proje kökünden:
 
 ```powershell
 .\installer\build.ps1 -IsccPath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'

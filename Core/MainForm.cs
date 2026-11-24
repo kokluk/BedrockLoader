@@ -10,7 +10,7 @@ namespace KoklukBedrockModloader;
 
 public sealed partial class MainForm : Form
 {
-    static readonly string DisplayVersion = $"v{ReleaseUpdates.CurrentVersion.ToString(3)}";
+    static readonly string DisplayVersion = $"v{ReleaseUpdates.CurrentVersion.ToString(ReleaseUpdates.CurrentVersion.Build == 0 ? 2 : 3)}";
     SymbolButton? updateLauncher;
     static readonly HttpClient Http = CreateHttpClient();
     readonly string modsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Minecraft bedrock", "mods");
@@ -64,16 +64,17 @@ public sealed partial class MainForm : Form
     public MainForm()
     {
         settings = LoadSettings();
+        LauncherAppearance.SquareButtons = settings.SquareButtons ?? LauncherAppearance.IsFluent;
         AnimatedRoundButton.AnimationsEnabled = settings.AnimationsEnabled;
         AnimatedRoundButton.AdvancedAnimationsEnabled = settings.AdvancedAnimationsEnabled;
         english = settings.Language == "EN";
         addonDownloads = Path.Combine(appDataRoot, "Addons", "Downloads");
         comMojangRoot = ResolveComMojangRoot();
         lightMode = EffectiveLightMode();
-        ApplyThemePalette(); ApplyLightPalette();
+        ApplyThemePalette(); ApplyLightPalette(); ApplyFluentSurfaces();
 
-        Text = "BedrockLoader";
-        Disposed += (_, _) => { DisposeTray(); generatedAppIcon?.Dispose(); };
+        Text = LauncherAppearance.IsFluent ? "BedrockLoader Fluent" : "BedrockLoader";
+        Disposed += (_, _) => { presenceLifetime.Cancel(); DisposeTray(); generatedAppIcon?.Dispose(); };
         Size = new Size(1040, 680);
         MinimumSize = new Size(800, 540);
         StartPosition = FormStartPosition.CenterScreen;
@@ -110,7 +111,7 @@ public sealed partial class MainForm : Form
     static HttpClient CreateHttpClient()
     {
         var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd($"BedrockLoader/{ReleaseUpdates.CurrentVersion.ToString(3)} (Windows; .NET 8)");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"BedrockLoader/{ReleaseUpdates.CurrentVersion.ToString(3)} (Windows; .NET 10)");
         return http;
     }
 
@@ -119,7 +120,7 @@ public sealed partial class MainForm : Form
     void BuildShell()
     {
         var root = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(2, 0, 2, 0), ColumnCount = 1, RowCount = 3, Tag = "shell" };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, LauncherAppearance.IsFluent ? 62 : 74));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         Controls.Add(root);
@@ -175,7 +176,7 @@ public sealed partial class MainForm : Form
         Divider();
         contentHost.Dock = DockStyle.Fill; contentHost.BackColor = Surface; contentHost.Tag = "page";
         contentHost.Margin = Padding.Empty; contentHost.Padding = new Padding(12, 13, 12, 12);
-        MakeRounded(contentHost, 20); body.Controls.Add(contentHost, 1, 0);
+        MakeRounded(contentHost, LauncherAppearance.Radius(20, 8)); body.Controls.Add(contentHost, 1, 0);
         var footer = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty, Tag = "shell" }; footerBar = footer;
         footer.Paint += (_, e) => { using var pen = new Pen(lightMode ? Color.FromArgb(206, 216, 225) : Color.FromArgb(35, 49, 65)); e.Graphics.DrawLine(pen, 0, 0, footer.Width, 0); };
         status.Dock = DockStyle.Fill; status.Font = LauncherFont.Create(8); status.TextAlign = ContentAlignment.MiddleLeft; status.Padding = Padding.Empty;
@@ -266,7 +267,7 @@ public sealed partial class MainForm : Form
     {
         DisposeSelfContainedPage();
         navButtons.Clear(); pageHeadingPanel = null;
-        Controls.Clear(); languageMenu.Items.Clear(); ApplyThemePalette(); ApplyLightPalette(); BuildShell(); ShowPage(currentPage, force: true); ApplyTheme();
+        Controls.Clear(); languageMenu.Items.Clear(); ApplyThemePalette(); ApplyLightPalette(); ApplyFluentSurfaces(); BuildShell(); ShowPage(currentPage, force: true); ApplyTheme();
         UpdateStatus(T("Ready.", "Hazır."));
     }
 
@@ -350,7 +351,7 @@ public sealed partial class MainForm : Form
     {
         var b = new AnimatedRoundButton { Text = text, Width = width, Height = 38, FlatStyle = FlatStyle.Flat, BackColor = SurfaceAlt, ForeColor = TextColor, Cursor = Cursors.Hand, Margin = new Padding(0, 0, 8, 8), Font = new Font(PreferredFontName(), 10.5f) };
         b.FlatAppearance.BorderSize = 0;
-        b.CornerRadius = 18;
+        b.CornerRadius = LauncherAppearance.Radius(18, 6);
         b.LeadingIcon = icon;
         ApplyButtonPalette(b);
         b.Click += (_, _) => action();
@@ -399,6 +400,7 @@ public sealed partial class MainForm : Form
 
     static string PreferredFontName()
     {
+        if (LauncherAppearance.IsFluent) return LauncherFont.Family;
         try { using var fonts = new InstalledFontCollection(); if (fonts.Families.Any(f => f.Name.Equals("Torus", StringComparison.OrdinalIgnoreCase))) return "Torus"; } catch { }
         return "Segoe UI";
     }
@@ -720,7 +722,7 @@ public sealed partial class MainForm : Form
         dropTitle.ForeColor = TextColor;
         dropTitle.AutoSize = false; dropTitle.Dock = DockStyle.Top; dropTitle.Height = 26;
         dropTitle.BackColor = Color.Transparent;
-        dropSubtitle.Text = addonMode ? T(".mcpack, .mcaddon or compatible .zip files will be installed into Minecraft AppData.", ".mcpack, .mcaddon veya uyumlu .zip dosyaları Minecraft AppData'ya yüklenir.") : T("Files will be copied to the app's local mods folder.", "Dosyalar uygulamanın yerel mods klasörüne kopyalanır.");
+        dropSubtitle.Text = addonMode ? T(".mcpack, .mcaddon or compatible .zip files will be installed into Minecraft AppData.", ".mcpack, .mcaddon veya uyumlu .zip dosyaları Minecraft AppData'ya yüklenir.") : T("Copy mod files to your local mods folder.", "Mod dosyalarını yerel mod klasörüne kopyala.");
         dropSubtitle.Font = LauncherFont.Create(10);
         dropSubtitle.ForeColor = Muted;
         dropSubtitle.AutoSize = false; dropSubtitle.Dock = DockStyle.Top; dropSubtitle.Height = 28;
@@ -735,7 +737,7 @@ public sealed partial class MainForm : Form
         if (!valid) return;
         isDragging = true;
         dropTitle.Text = currentPage == "Addons" ? T("Release to install pack(s)", "Paketleri yüklemek için bırak") : T("Release to add mod files", "Mod dosyalarını eklemek için bırak");
-        dropSubtitle.Text = currentPage == "Addons" ? T("Files will be installed into Minecraft AppData.", "Dosyalar Minecraft AppData'ya yüklenir.") : T("Release to confirm adding the selected files to the local mods folder.", "Seçili dosyaları yerel mod klasörüne eklemek için bırak.");
+        dropSubtitle.Text = currentPage == "Addons" ? T("Files will be installed into Minecraft AppData.", "Dosyalar Minecraft AppData'ya yüklenir.") : T("Copy to the mods folder.", "Mod klasörüne kopyala.");
         dropPanel.BackColor = MixColors(SurfaceAlt, Accent, lightMode ? 0.18 : 0.24);
     }
 
@@ -761,13 +763,13 @@ public sealed partial class MainForm : Form
         if (dropPanel.IsDisposed) return;
         dropPanel.BackColor = SurfaceAlt;
         dropTitle.Text = currentPage == "Addons" ? T("Drop pack files here", "Paket dosyalarını buraya bırak") : T("Drop mod files here", "Mod dosyalarını buraya bırak");
-        dropSubtitle.Text = currentPage == "Addons" ? T("Drop a .mcpack, .mcaddon or .zip package here.", ".mcpack, .mcaddon veya .zip paketini buraya bırak.") : T("Files will be copied to the app's local mods folder.", "Dosyalar uygulamanın yerel mods klasörüne kopyalanır.");
+        dropSubtitle.Text = currentPage == "Addons" ? T("Drop a .mcpack, .mcaddon or .zip package here.", ".mcpack, .mcaddon veya .zip paketini buraya bırak.") : T("Copy mod files to your local mods folder.", "Mod dosyalarını yerel mod klasörüne kopyala.");
     }
 
     void ChooseModFiles()
     {
-        using var d = new OpenFileDialog { Title = T("Select mod files", "Mod dosyalarını seç"), Filter = T("All files (*.*)|*.*", "Tüm dosyalar (*.*)|*.*"), Multiselect = true };
-        if (d.ShowDialog(this) == DialogResult.OK) CopyMods(d.FileNames);
+        using var picker = new OpenFileDialog { Title = T("Select mod files", "Mod dosyalarını seç"), Filter = "DLL (*.dll)|*.dll", Multiselect = true };
+        if (picker.ShowDialog(this) == DialogResult.OK) CopyMods(picker.FileNames);
     }
 
     void CopyMods(IEnumerable<string> paths)
@@ -1028,8 +1030,9 @@ public sealed partial class MainForm : Form
     void LaunchGame()
     {
         if (backupBusy) return;
-        if (!MinecraftInstallation.IsInstalled(settings.ContentPath)) { ShowMinecraftInstallPrompt(); return; }
-        if (!MinecraftInstallation.TryLaunch(settings.ContentPath))
+        bool preview = settings.UseMinecraftPreview && MinecraftInstallation.HasPreview();
+        if (!preview && !MinecraftInstallation.IsInstalled(settings.ContentPath)) { ShowMinecraftInstallPrompt(); return; }
+        if (!MinecraftInstallation.TryLaunch(settings.ContentPath, preview))
             ShowThemedPopup(T("Launch failed", "Oyun açılamadı"),
                 T("Minecraft for Windows could not be launched.", "Minecraft for Windows başlatılamadı."));
     }
@@ -1058,7 +1061,7 @@ public sealed partial class MainForm : Form
 
     void ApplyThemePalette()
     {
-        TextColor = Color.FromArgb(228, 230, 235); Muted = Color.FromArgb(188, 198, 208);
+        TextColor = Color.FromArgb(236, 236, 236); Muted = Color.FromArgb(184, 184, 184);
         if (settings.Theme == "Material You")
         {
             Color seed = MaterialAccent();
@@ -1072,7 +1075,7 @@ public sealed partial class MainForm : Form
         }
         else
         {
-            Bg = Color.FromArgb(8, 15, 23); Surface = Color.FromArgb(17, 28, 40); SurfaceAlt = Color.FromArgb(28, 43, 59);
+            Bg = Color.FromArgb(18, 18, 18); Surface = Color.FromArgb(25, 25, 25); SurfaceAlt = Color.FromArgb(34, 34, 34);
         }
         Accent = settings.Theme switch
         {
@@ -1106,6 +1109,7 @@ public sealed partial class MainForm : Form
             button.ForeColor = ReadableText(swatch.SwatchColor);
             return;
         }
+        if (LauncherAppearance.IsFluent) button.CornerRadius = button is HomeCounterButton ? 8 : 6;
         if (Equals(button.Tag, "danger") || button.Text.Contains("Delete checked", StringComparison.OrdinalIgnoreCase) || button.Text.Contains("Seçilenleri sil", StringComparison.OrdinalIgnoreCase))
         {
             button.BackColor = Color.FromArgb(220, 55, 65);
@@ -1141,7 +1145,7 @@ public sealed partial class MainForm : Form
 
     void ApplyNavigationColor(Button button, bool selected)
     {
-        double tint = lightMode ? 0.16 : 0.20;
+        double tint = LauncherAppearance.IsFluent ? (lightMode ? .09 : .12) : (lightMode ? .16 : .20);
         button.BackColor = selected ? Color.FromArgb(
             (int)(Bg.R + (Accent.R - Bg.R) * tint),
             (int)(Bg.G + (Accent.G - Bg.G) * tint),
@@ -1149,6 +1153,7 @@ public sealed partial class MainForm : Form
         button.ForeColor = TextColor;
         if (button is NavIconButton nav)
         {
+            if (LauncherAppearance.IsFluent) nav.CornerRadius = 4;
             nav.IsActive = selected;
             nav.IconColor = selected ? (lightMode ? ControlPaint.Dark(Accent, 0.35f) : Accent) : TextColor;
             nav.FocusBorderColor = Accent;
@@ -1159,11 +1164,11 @@ public sealed partial class MainForm : Form
     void ApplyLightPalette()
     {
         if (!lightMode) return;
-        Bg = Color.FromArgb(242, 244, 250);
+        Bg = Color.FromArgb(242, 242, 242);
         Surface = Color.FromArgb(255, 255, 255);
-        SurfaceAlt = Color.FromArgb(226, 231, 241);
-        TextColor = Color.FromArgb(27, 33, 47);
-        Muted = Color.FromArgb(90, 99, 116);
+        SurfaceAlt = Color.FromArgb(230, 230, 230);
+        TextColor = Color.FromArgb(28, 28, 28);
+        Muted = Color.FromArgb(88, 88, 88);
         if (settings.Theme == "Material You")
         {
             var seed = MaterialAccent();
@@ -1175,8 +1180,10 @@ public sealed partial class MainForm : Form
 
     void ApplyTheme()
     {
+        LauncherAppearance.SquareButtons = settings.SquareButtons ?? LauncherAppearance.IsFluent;
         lightMode = EffectiveLightMode();
         ApplyThemePalette(); ApplyLightPalette();
+        ApplyFluentSurfaces();
         RefreshAppIcon();
         BackColor = Bg; ForeColor = TextColor;
         ApplyDwmTheme();
@@ -1231,6 +1238,7 @@ public sealed partial class MainForm : Form
             {
                 if (button is SymbolButton symbol)
                 {
+                    if (LauncherAppearance.IsFluent) symbol.CornerRadius = 6;
                     button.ForeColor = symbol.Symbol == "update" ? Accent : symbol.Symbol == "close" ? (lightMode ? Color.FromArgb(179, 38, 61) : Color.FromArgb(255, 165, 178)) : TextColor;
                     button.BackColor = MixColors(Bg, symbol.Symbol == "close" ? button.ForeColor : Accent, lightMode ? 0.08 : 0.12);
                     symbol.FocusBorderColor = Accent; continue;
@@ -1316,6 +1324,7 @@ public sealed partial class MainForm : Form
     sealed class SpacedCheckedListBox : CheckedListBox
     {
         int wheelRemainder;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color CheckAccent { get; set; } = Color.FromArgb(50, 190, 240);
         public override int ItemHeight { get => 34; set { } }
         protected override CreateParams CreateParams
@@ -1363,16 +1372,24 @@ public sealed partial class MainForm : Form
 
     sealed class RoundedPanel : Panel
     {
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int CornerRadius { get; set; } = 18;
+        internal bool InputShape;
+        internal int PaintRadius => InputShape ? (LauncherAppearance.SquareButtons ? 4 : CornerRadius) : LauncherAppearance.Radius(CornerRadius, 8);
         public RoundedPanel() { SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true); }
         protected override void OnPaintBackground(PaintEventArgs e) { e.Graphics.Clear(Parent?.BackColor ?? BackColor); }
         protected override void OnPaint(PaintEventArgs e)
         {
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            using var path = RoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), CornerRadius);
+            using var path = RoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), PaintRadius);
             using var brush = new SolidBrush(BackColor);
             e.Graphics.FillPath(brush, path);
+            if (LauncherAppearance.IsFluent)
+            {
+                using var outline = new Pen(MixColors(BackColor, ReadableText(BackColor), .11));
+                e.Graphics.DrawPath(outline, path);
+            }
             base.OnPaint(e);
         }
     }
@@ -1386,9 +1403,11 @@ public sealed partial class MainForm : Form
 
     sealed class AppSettings
     {
+        public bool UseMinecraftPreview { get; set; }
         public List<SavedServer> Servers { get; set; } = [];
         public bool IntroSeen { get; set; }
         public string LastRunVersion { get; set; } = "";
+        public bool UpdateCleanupPending { get; set; }
         public bool CloseToTray { get; set; } = true;
         public bool TrayNoticeShown { get; set; }
         public bool ShinyHomeIcons { get; set; } = true;
@@ -1398,6 +1417,7 @@ public sealed partial class MainForm : Form
         public string LocalName { get; set; } = "";
         public string AppIconSymbol { get; set; } = "wolf";
         public int? AppIconColor { get; set; }
+        public bool? SquareButtons { get; set; }
         public bool ShowUsage { get; set; }
         public bool FollowWindowsTheme { get; set; } = true;
         public bool CinnabarNightly { get; set; }

@@ -6,7 +6,7 @@ namespace KoklukBedrockModloader;
 
 public sealed partial class MainForm
 {
-    static readonly string[] AppIconSymbols = ["wolf", "Addons", "game", "status"];
+    static readonly string[] AppIconSymbols = ["wolf", "game"];
     Icon? generatedAppIcon;
     (string Symbol, int Color) appliedAppIcon;
 
@@ -19,7 +19,7 @@ public sealed partial class MainForm
         using var dialog = new RoundedPopupForm(Accent)
         {
             Text = title, StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.None,
-            ShowInTaskbar = false, ClientSize = new Size(500, 266), BackColor = Surface, ForeColor = TextColor
+            ShowInTaskbar = false, ClientSize = new Size(500, 312), BackColor = Surface, ForeColor = TextColor
         };
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(16, 8, 16, 4) };
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
@@ -29,7 +29,25 @@ public sealed partial class MainForm
         header.Controls.Add(new AboutLogo { Size = new Size(36, 36), ForeColor = Accent });
         header.Controls.Add(WrappedText(title, 15, true));
         layout.Controls.Add(header, 0, 0);
-        layout.Controls.Add(BuildAppIconEditor(out var saveIcon, out _), 0, 1);
+        var editor = BuildAppIconEditor(out var saveIcon, out _);
+        var shape = MakeThemeCombo(220);
+        shape.Dock = DockStyle.Fill;
+        shape.AccessibleName = T("Button shape", "Düğme biçimi");
+        shape.Items.AddRange([T("Round", "Yuvarlak"), T("Square", "Kare")]);
+        bool originalShape = LauncherAppearance.SquareButtons;
+        shape.SelectedIndex = originalShape ? 1 : 0;
+        void PreviewShape(bool square)
+        {
+            if (LauncherAppearance.SquareButtons == square) return;
+            LauncherAppearance.SquareButtons = square;
+            Refresh();
+            owner.Refresh();
+            dialog.Refresh();
+        }
+        shape.SelectedIndexChanged += (_, _) => PreviewShape(shape.SelectedIndex == 1);
+        editor.Controls.Add(WrappedText(shape.AccessibleName, 10, true), 0, 3);
+        editor.Controls.Add(shape, 0, 4);
+        layout.Controls.Add(editor, 0, 1);
         var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Margin = Padding.Empty };
         var save = MakeButton(T("Save", "Kaydet"), () => dialog.DialogResult = DialogResult.OK, 116, "check-mark");
         save.Tag = "primary";
@@ -40,8 +58,13 @@ public sealed partial class MainForm
         dialog.AcceptButton = save;
         dialog.CancelButton = cancel;
         RecolorTree(dialog);
-        if (dialog.ShowDialog(owner) != DialogResult.OK) return;
+        if (dialog.ShowDialog(owner) != DialogResult.OK)
+        {
+            PreviewShape(originalShape);
+            return;
+        }
         saveIcon();
+        settings.SquareButtons = LauncherAppearance.SquareButtons;
         SaveSettings();
         RefreshAppIcon();
     }
@@ -49,7 +72,7 @@ public sealed partial class MainForm
     void RefreshAppIcon()
     {
         string symbol = AppIconSymbols.Contains(settings.AppIconSymbol) ? settings.AppIconSymbol : "wolf";
-        Color color = settings.AppIconColor is int rgb ? Color.FromArgb(rgb | unchecked((int)0xff000000)) : Accent;
+        Color color = settings.AppIconColor == Color.White.ToArgb() ? Color.White : Accent;
         var key = (symbol, color.ToArgb());
         if (generatedAppIcon != null && appliedAppIcon == key) return;
 
@@ -94,62 +117,43 @@ public sealed partial class MainForm
 
     TableLayoutPanel BuildAppIconEditor(out Action save, out Action refresh)
     {
-        var profile = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4,
+        var profile = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5,
             Margin = Padding.Empty, Tag = "settings-card" };
         profile.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         profile.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 84));
-        foreach (int height in new[] { 25, 42, 25, 42 })
+        foreach (int height in new[] { 25, 42, 38, 25, 42 })
             profile.RowStyles.Add(new RowStyle(SizeType.Absolute, height));
         var iconShape = MakeThemeCombo(220);
-        iconShape.Items.AddRange([T("Wolf", "Kurt"), T("Box", "Kutu"), T("Controller", "Oyun kumandası"),
-            T("Check mark", "Onay işareti")]);
+        iconShape.Items.AddRange([T("Fox", "Tilki"), T("Controller", "Oyun kumandası")]);
         iconShape.SelectedIndex = Math.Max(0, Array.IndexOf(AppIconSymbols, settings.AppIconSymbol));
         iconShape.AccessibleName = T("Taskbar icon", "Görev çubuğu simgesi");
         iconShape.Dock = DockStyle.Fill;
         profile.Controls.Add(WrappedText(iconShape.AccessibleName, 10, true), 0, 0);
         profile.Controls.Add(iconShape, 0, 1);
-        profile.Controls.Add(WrappedText(T("Icon color", "Simge rengi"), 10, true), 0, 2);
-        var iconColorRow = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false,
-            Margin = Padding.Empty, Tag = "settings-card" };
-        profile.Controls.Add(iconColorRow, 0, 3);
-        int? customIconColor = settings.AppIconColor;
+        var tint = MakeChoice(T("Use theme icon color", "Simge rengi"), settings.AppIconColor != Color.White.ToArgb());
+        profile.Controls.Add(tint, 0, 2);
         var iconPreview = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.CenterImage };
         profile.Controls.Add(iconPreview, 1, 1);
         profile.SetRowSpan(iconPreview, 3);
         iconPreview.Disposed += (_, _) => iconPreview.Image?.Dispose();
-        var themeColor = MakeButton(T("Theme color", "Tema rengi"), () => { }, 112);
-        var customColor = MakeButton(T("Choose color", "Renk seç"), () => { }, 112);
-        themeColor.Click += (_, _) => { customIconColor = null; RefreshIconPreview(); };
-        customColor.Click += (_, _) =>
-        {
-            using var picker = new ColorDialog { Color = PreviewIconColor(), FullOpen = true };
-            if (picker.ShowDialog(profile.FindForm()) != DialogResult.OK) return;
-            customIconColor = picker.Color.ToArgb();
-            RefreshIconPreview();
-        };
-        iconColorRow.Controls.AddRange([themeColor, customColor]);
+        tint.CheckedChanged += (_,_) => RefreshIconPreview();
         iconShape.SelectedIndexChanged += (_, _) => RefreshIconPreview();
         save = () =>
         {
             settings.AppIconSymbol = AppIconSymbols[iconShape.SelectedIndex];
-            settings.AppIconColor = customIconColor;
+            settings.AppIconColor = tint.Checked ? null : Color.White.ToArgb();
         };
         refresh = RefreshIconPreview;
         refresh();
         return profile;
 
-        Color PreviewIconColor() => customIconColor is int rgb
-            ? Color.FromArgb(rgb | unchecked((int)0xff000000)) : Accent;
+        Color PreviewIconColor() => tint.Checked ? Accent : Color.White;
 
         void RefreshIconPreview()
         {
             var previous = iconPreview.Image;
             iconPreview.Image = RenderAppIcon(AppIconSymbols[iconShape.SelectedIndex], PreviewIconColor());
             previous?.Dispose();
-            themeColor.Tag = customIconColor is null ? "primary" : null;
-            customColor.Tag = customIconColor is null ? null : "primary";
-            ApplyButtonPalette(themeColor);
-            ApplyButtonPalette(customColor);
         }
 
     }

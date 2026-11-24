@@ -6,6 +6,7 @@ public sealed partial class MainForm
 {
     class ToggleContextMenu : ContextMenuStrip
     {
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Control? ToggleOwner { get; set; }
         protected override void OnClosing(ToolStripDropDownClosingEventArgs e)
         {
@@ -22,7 +23,7 @@ public sealed partial class MainForm
 
     sealed class SelectorMenu : ToggleContextMenu
     {
-        internal const int Radius = 22;
+        internal static int Radius => LauncherAppearance.SquareButtons ? 6 : 22;
         public SelectorMenu()
         {
             DropShadowEnabled = false;
@@ -54,6 +55,7 @@ public sealed partial class MainForm
         long openedAt;
         bool closing;
         Action? afterClose;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool RevealFromBottom { get; init; }
 
         public void SelectAndClose(Action action)
@@ -78,7 +80,7 @@ public sealed partial class MainForm
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            if (AnimatedRoundButton.ReducedMotion) return;
+            if (AnimatedRoundButton.ReducedMotion) { UpdateRegion(1); return; }
             openedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             UpdateRegion(0);
             reveal.Start();
@@ -147,7 +149,7 @@ public sealed partial class MainForm
             if (!header && (e.Item.Selected || e.Item is ToolStripMenuItem { Checked: true }))
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using var path = RoundedPath(new Rectangle(6, 2, Math.Max(1, e.Item.Width - 12), e.Item.Height - 4), 12);
+                using var path = RoundedPath(new Rectangle(6, 2, Math.Max(1, e.Item.Width - 12), e.Item.Height - 4), LauncherAppearance.SquareButtons ? 4 : 12);
                 using var fill = new SolidBrush(MixColors(owner.SurfaceAlt, owner.Accent, e.Item.Selected ? 0.22 : 0.13));
                 e.Graphics.FillPath(fill, path);
             }
@@ -162,8 +164,12 @@ public sealed partial class MainForm
             string? icon = (e.Item.Tag as SelectorItemIcon)?.Key;
             int left = icon == null ? 14 : 38;
             if (icon != null) SoftIcons.Draw(e.Graphics, icon, new RectangleF(14, (e.Item.Height - 17) / 2f, 17, 17), owner.Accent);
+            int reserved = e.Item.Tag is SelectorDetail ? 118 : 40;
+            if (e.Item.Tag is SelectorDetail detail)
+                TextRenderer.DrawText(e.Graphics, detail.Read(), e.TextFont, new Rectangle(e.Item.Width - reserved, 0, reserved - 40, e.Item.Height),
+                    owner.lightMode ? Color.DarkGreen : Color.LightGreen, TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
             TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont,
-                new Rectangle(left, 0, Math.Max(0, e.Item.Width - left - 40), e.Item.Height), owner.TextColor,
+                new Rectangle(left, 0, Math.Max(0, e.Item.Width - left - reserved), e.Item.Height), owner.TextColor,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             if (e.Item.Tag is string)
@@ -177,6 +183,8 @@ public sealed partial class MainForm
         }
     }
 
+    sealed record SelectorDetail(Func<string> Read);
+
     sealed record SelectorItemIcon(string Key);
 
     // A painted selector avoids the system ComboBox's unthemed arrow surface.
@@ -187,6 +195,7 @@ public sealed partial class MainForm
         int selectedIndex = -1;
         public List<object> Items { get; } = new();
         public event EventHandler? SelectedIndexChanged;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public int SelectedIndex
         {
             get => selectedIndex;
@@ -199,8 +208,13 @@ public sealed partial class MainForm
                 Invalidate();
             }
         }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public object? SelectedItem { get => selectedIndex < 0 ? null : Items[selectedIndex]; set => SelectedIndex = Items.IndexOf(value!); }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string[]? ItemIcons { get; set; }
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        internal Func<int, string>? ItemDetail { get; set; }
+        internal void RefreshDetails() { if (menu.Visible) menu.Invalidate(true); }
         public SoftSelector(MainForm owner)
         {
             this.owner = owner;
@@ -225,6 +239,7 @@ public sealed partial class MainForm
                 int index = i;
                 var item = new ToolStripMenuItem(Items[i].ToString()) { AutoSize = false, Size = new Size(Math.Max(Width - 2, 120), 38), Checked = i == selectedIndex };
                 if (ItemIcons is { } icons && i < icons.Length) item.Tag = new SelectorItemIcon(icons[i]);
+                if (ItemDetail is { } detail) item.Tag = new SelectorDetail(() => detail(index));
                 item.Click += (_, _) => menu.SelectAndClose(() => { if (!IsDisposed) { Focus(); SelectedIndex = index; } });
                 menu.Items.Add(item);
             }

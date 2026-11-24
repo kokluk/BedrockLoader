@@ -6,6 +6,7 @@ public sealed partial class MainForm
 {
     sealed class SymbolButton : AnimatedRoundButton
     {
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string Symbol { get; set; } = "settings";
         double spin;
         public void Spin()
@@ -22,13 +23,14 @@ public sealed partial class MainForm
             return spin != 0;
         }
         bool showUpdateBadge;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool ShowUpdateBadge { get => showUpdateBadge; set { showUpdateBadge = value; Invalidate(); } }
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
             var g = e.Graphics; var iconState = g.Save();
             ApplyContentMotion(g);
-            float size = 22 + (float)HoverAmount;
+            float size = Symbol == "trash" ? Math.Min(Width, Height) * .52f : 22 + (float)HoverAmount;
             float center = Text.Length == 0 ? Width / 2f : Width - 21;
             if (spin != 0)
             {
@@ -54,7 +56,9 @@ public sealed partial class MainForm
 
     sealed class NavIconButton : AnimatedRoundButton
     {
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public string IconKey { get; set; } = "Home";
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool IsActive { get; set; }
         protected override void OnClick(EventArgs e)
         {
@@ -62,6 +66,7 @@ public sealed partial class MainForm
             base.OnClick(e);
         }
         Color iconColor = Color.LightGray, paintedIcon = Color.LightGray;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color IconColor
         {
             get => iconColor;
@@ -81,6 +86,12 @@ public sealed partial class MainForm
             ApplyIconMotion(e.Graphics, bounds);
             SoftIcons.Draw(e.Graphics, IconKey, bounds, paintedIcon, IsActive);
             e.Graphics.Restore(state);
+            if (LauncherAppearance.IsFluent && IsActive)
+            {
+                using var indicator = new SolidBrush(paintedIcon);
+                using var path = RoundedPath(new Rectangle(1, (Height - 16) / 2, 3, 16), 1);
+                e.Graphics.FillPath(indicator, path);
+            }
         }
     }
 
@@ -132,6 +143,7 @@ public sealed partial class MainForm
     sealed class SoftStatusLabel : Label
     {
         Color iconColor = Color.LightGray;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color IconColor { get => iconColor; set { iconColor = value; Invalidate(); } }
         protected override void OnPaint(PaintEventArgs e)
         {

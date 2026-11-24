@@ -5,11 +5,12 @@ public sealed partial class MainForm
     RoundedPopupForm MakeChoiceDialog(string title, string description, IReadOnlyList<PopupToggle> choices, string accept, int columns = 1, bool showBack = false, string? headingIcon = null, Control? extra = null)
     {
         int rows = (choices.Count + columns - 1) / columns;
+        int extraHeight = extra?.Height ?? 0;
         bool useCards = headingIcon != null;
         var dialog = new RoundedPopupForm(Accent)
         {
             Text = title, BackColor = Surface, ForeColor = TextColor,
-            ClientSize = new Size(useCards ? 638 : columns == 2 ? 585 : 515, (useCards ? 154 : 170) + 44 * rows + (extra == null ? 0 : 48)),
+            ClientSize = new Size(useCards ? 638 : columns == 2 ? 585 : 515, (useCards ? 154 : 170) + 44 * rows + extraHeight),
             StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.None, ShowInTaskbar = false
         };
         var grid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, Padding = new Padding(14, 7, 14, 7) };
@@ -33,7 +34,7 @@ public sealed partial class MainForm
         grid.GetControlFromPosition(0, 1)!.Dock = DockStyle.Fill;
         grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 44 * rows));
         grid.Controls.Add(BuildChoiceGrid(choices, columns), 0, 2);
-        grid.RowStyles.Add(extra == null ? new RowStyle(SizeType.Percent, 100) : new RowStyle(SizeType.Absolute, 48));
+        grid.RowStyles.Add(extra == null ? new RowStyle(SizeType.Percent, 100) : new RowStyle(SizeType.Absolute, extraHeight));
         if (extra != null) grid.Controls.Add(extra, 0, 3);
         grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
         var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false };
@@ -138,7 +139,7 @@ public sealed partial class MainForm
     void ShowCustomization()
     {
         var choices = MakeCustomizationChoices(out var apply, styled: true);
-        var launcherSettings = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
+        var launcherSettings = new FlowLayoutPanel { Dock = DockStyle.Fill, Height = 48, WrapContents = false };
         launcherSettings.Controls.Add(new AboutLogo { Size = new Size(32, 36), ForeColor = Accent });
         launcherSettings.Controls.Add(MakeButton(T("Launcher Settings", "Launcher Ayarları"),
             () => ShowLauncherIconSettings(launcherSettings.FindForm() ?? this), 175));
@@ -148,6 +149,7 @@ public sealed partial class MainForm
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         apply();
         SaveSettings();
+        ApplyTheme();
     }
 
     BackupParts? ChooseBackupParts(bool full, bool importing, Action? back = null)

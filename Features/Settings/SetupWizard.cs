@@ -155,7 +155,7 @@ public sealed partial class MainForm
         shell.Controls.Add(bottom, 0, 2);
         shell.SetColumnSpan(bottom, 2);
         footer.Dock = DockStyle.Right;
-        footer.Width = 255;
+        footer.Width = 255; footer.WrapContents = false; footer.Margin = Padding.Empty;
         bottom.Controls.Add(footer);
         var next = MakeButton("", () => { }, 126);
         var back = MakeButton(T("Back", "Geri"), () => { }, 105);
@@ -170,6 +170,7 @@ public sealed partial class MainForm
             if (page < steps.Length - 1) { page++; Render(); }
             else popup.DialogResult = DialogResult.OK;
         };
+        back.Margin = next.Margin = new Padding(4, 0, 4, 0);
         footer.Controls.AddRange([next, back]);
         popup.AcceptButton = next;
         popup.CancelButton = skip;
@@ -254,7 +255,8 @@ public sealed partial class MainForm
                     5 when page == 3 => Math.Min(44, Math.Max(32, (layout.ClientSize.Height - layout.Padding.Vertical - 102) / customizationChoices.Length))
                         * customizationChoices.Length,
                     6 when page == 1 => 176,
-                    7 when page == 4 => 44 * discordChoices.Length,
+                    7 when page == 4 => Math.Min(44, Math.Max(32, (layout.ClientSize.Height - layout.Padding.Vertical - 102) / discordChoices.Length))
+                        * discordChoices.Length,
                     _ => 0
                 };
             back.Enabled = page > 0;

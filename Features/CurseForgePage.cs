@@ -207,8 +207,7 @@ public sealed partial class MainForm
                     install.Click += async (_, _) => await InstallCursePack(pack, lifetime.Token, worlds, shaders, skins);
                     var website = MakeButton("CurseForge", () => OpenUrl(pack.Website.AbsoluteUri)); website.Tag = "card-button"; website.Dock = DockStyle.Fill; website.Margin = new Padding(4, 0, 0, 0); website.Font = LauncherFont.Create(9);
                     actions.Controls.Add(install, 0, 0);
-                    if (worlds) { actions.SetColumnSpan(install, 2); website.Dispose(); }
-                    else actions.Controls.Add(website, 1, 0);
+                    actions.Controls.Add(website, 1, 0);
                     content.Controls.Add(header, 0, 0); content.Controls.Add(summary, 0, 1); content.Controls.Add(actions, 0, 2); card.Controls.Add(content); cards.Controls.Add(card, column++, 0);
                     void FitCard() { content.RowStyles[0].Height = card.Height < 180 ? 56 : 76; summary.Visible = card.Height >= 150; }
                     card.Resize += (_, _) => FitCard(); FitCard();

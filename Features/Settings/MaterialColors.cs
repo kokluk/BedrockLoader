@@ -81,8 +81,10 @@ public sealed partial class MainForm
 
     sealed class MaterialColorButton : AnimatedRoundButton
     {
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public Color SwatchColor { get; init; }
         bool selected;
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public bool IsSelected { get => selected; set { selected = value; AccessibleDescription = value ? "✓" : ""; Invalidate(); } }
         protected override void OnPaint(PaintEventArgs e)
         {

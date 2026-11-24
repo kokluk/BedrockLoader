@@ -208,10 +208,11 @@ public sealed partial class MainForm
         var save = MakeButton(T("Save", "Kaydet"), () => dialog.DialogResult = DialogResult.OK, 96, "check-mark");
         save.Tag = "primary";
         ApplyButtonPalette(save);
-        var header = new Panel { Dock = DockStyle.Top, Height = 49, BackColor = Surface };
-        nameCard.Location = new Point(0, 1);
-        nameCard.Width = 220;
-        header.Controls.Add(nameCard);
+        var header = new TableLayoutPanel { Dock = DockStyle.Top, Height = 47, ColumnCount = 4, RowCount = 1 };
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        foreach (int width in new[] {94, 112, 104}) header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, width));
+        var cancel = MakeButton(T("Cancel", "Vazgeç"), () => dialog.DialogResult = DialogResult.Cancel, 104);
+        foreach (Control c in new Control[] {nameCard, model, cancel, save}) { c.Dock = DockStyle.Fill; header.Controls.Add(c); }
         var bar = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(0, 8, 0, 0), WrapContents = true };
         var canvas = new PictureBox { Dock = DockStyle.Fill, BackColor = SurfaceAlt, Margin = Padding.Empty };
         var overlay = MakeButton(T("Overlay PNG", "Bindir"), OverlayPng, 136, "image-overlay");
@@ -228,19 +229,18 @@ public sealed partial class MainForm
             canvas.Invalidate();
         };
         layerStatus.Tick += (_, _) => { layerStatus.Stop(); layerButton.Text = T("Layers", "Katman"); };
-        bar.Controls.AddRange([model, erase, overlay, layerButton]);
+        bool sampling = false, sampledStroke = false;
+        var picker = MakeButton(T("Eyedropper", "Damlalık"), () => { }, 116, "eyedropper");
+        picker.Click += (_,_) => {
+            sampling = !sampling;
+            picker.Tag = sampling ? "primary" : null; ApplyButtonPalette(picker);
+            canvas.Cursor = sampling ? Cursors.Cross : Cursors.Default;
+        };
+        bar.Controls.AddRange([picker, erase, overlay, layerButton]);
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 53 };
-        save.Dock = DockStyle.Right;
-        var saveHost = new Panel { Dock = DockStyle.Right, Width = 210, Padding = new Padding(0, 8, 0, 8) };
-        var cancel = MakeButton(T("Cancel", "Vazgeç"), () => dialog.DialogResult = DialogResult.Cancel, 104);
-        cancel.Dock = DockStyle.Fill;
-        saveHost.Controls.Add(cancel);
-        saveHost.Controls.Add(save);
-        bar.Dock = DockStyle.Fill;
         footer.Controls.Add(bar);
-        footer.Controls.Add(saveHost);
         void FitFooter() => footer.Height = bar.Controls.Cast<Control>().Sum(control => control.Width + control.Margin.Horizontal)
-            <= footer.ClientSize.Width - saveHost.Width ? 53 : 99;
+            <= footer.ClientSize.Width ? 53 : 99;
         footer.Resize += (_, _) => FitFooter();
         FitFooter();
         dialog.CancelButton = cancel;
@@ -268,10 +268,20 @@ public sealed partial class MainForm
             if (e.Button != MouseButtons.Left || !area.Contains(e.Location)) return;
             int x = (e.X - area.X) * bitmap.Width / area.Width, y = (e.Y - area.Y) * bitmap.Height / area.Height;
             if (!showLayers && layerRects.Any(rect => rect.Contains(x * 64 / bitmap.Width, y * 64 / bitmap.Height))) return;
+            if (sampledStroke) return;
+            if (sampling)
+            {
+                var color = bitmap.GetPixel(x, y);
+                hex.Text = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                ink = color; colorPreview.BackColor = color; SetEraser(false);
+                sampling = false; sampledStroke = true; picker.Tag = null; ApplyButtonPalette(picker);
+                canvas.Cursor = Cursors.Default;
+                return;
+            }
             bitmap.SetPixel(x, y, erasing ? Color.Transparent : ink);
             canvas.Invalidate();
         }
-        canvas.MouseDown += PaintPixel;
+        canvas.MouseDown += (sender,e) => { sampledStroke = false; PaintPixel(sender,e); };
         canvas.MouseMove += PaintPixel;
         var editor = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = Padding.Empty };
         editor.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
