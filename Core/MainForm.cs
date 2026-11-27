@@ -73,7 +73,7 @@ public sealed partial class MainForm : Form
         lightMode = EffectiveLightMode();
         ApplyThemePalette(); ApplyLightPalette(); ApplyFluentSurfaces();
 
-        Text = LauncherAppearance.IsFluent ? "BedrockLoader Fluent" : "BedrockLoader";
+        Text = "BedrockLoader";
         Disposed += (_, _) => { presenceLifetime.Cancel(); DisposeTray(); generatedAppIcon?.Dispose(); };
         Size = new Size(1040, 680);
         MinimumSize = new Size(800, 540);
