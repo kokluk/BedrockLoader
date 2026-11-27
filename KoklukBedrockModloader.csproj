@@ -8,7 +8,7 @@
     <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
     <AssemblyName>BedrockLoader</AssemblyName>
     <RootNamespace>BedrockLoader</RootNamespace>
-    <Version>0.18.2</Version>
+    <Version>0.18.3</Version>
     <ApplicationIcon>Assets\BedrockLoader.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition="'$(FluentVariant)' == 'true'">
@@ -16,7 +16,7 @@
     <AssemblyName>BedrockLoader.Fluent</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="tests/**/*.cs;tools/**/*.cs;installer-payload*/**;installer-test*/**" />
+    <Compile Remove="android/**/*.cs;tests/**/*.cs;tools/**/*.cs;installer-payload*/**;installer-test*/**" />
     <InternalsVisibleTo Include="DiscordPresence.Tests" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />

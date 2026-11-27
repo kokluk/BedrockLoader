@@ -4,7 +4,7 @@
 
 BedrockLoader, **Minecraft Bedrock** ve **Cinnabar** için bir Windows başlatıcısı ve içerik yöneticisi. Ana ekrandan oyunlar arasında geçebilir, modlarını, paketlerini, skinlerini, dünyalarını ve sunucularını yönetebilirsin.
 
-[Windows x64 kurulumu ve sürüm notları](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.2) · [Değişiklik geçmişi](CHANGELOG.md)
+[Windows x64 kurulumu ve sürüm notları](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.3) · [Değişiklik geçmişi](CHANGELOG.md)
 
 ## Uygulama önizlemesi
 
@@ -30,14 +30,14 @@ Hazır temalar arasından seçim yap veya Material You renk paletiyle arayüzü 
 
 ## Kurulum
 
-1. [v0.18.2 sürüm sayfasını](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.2) aç.
-2. **Assets** bölümünden **BedrockLoader-Setup-v0.18.2-x64.exe** dosyasını indir ve çalıştır.
+1. [v0.18.3 sürüm sayfasını](https://github.com/kokluk/Bedrockloader/releases/tag/v0.18.3) aç.
+2. **Assets** bölümünden **BedrockLoader-Setup-v0.18.3-x64.exe** dosyasını indir ve çalıştır.
 3. İlk açılışta tema, animasyon, tıklama sesi ve Discord Rich Presence tercihlerini seç. İstersen ana ekrandaki selamlamada kullanılacak bir ad ekle.
 
-Kurulum paketi .NET çalışma zamanını içerir. Dosyayı doğrulamak istersen, aynı sürümdeki **SHA256SUMS-v0.18.2.txt** dosyasıyla karşılaştırabilirsin.
+Kurulum paketi .NET çalışma zamanını içerir. Dosyayı doğrulamak istersen, aynı sürümdeki **SHA256SUMS-v0.18.3.txt** dosyasıyla karşılaştırabilirsin.
 
 ```powershell
-Get-FileHash .\BedrockLoader-Setup-v0.18.2-x64.exe -Algorithm SHA256
+Get-FileHash .\BedrockLoader-Setup-v0.18.3-x64.exe -Algorithm SHA256
 ```
 
 ## Oyunlar ve içerik
@@ -60,8 +60,11 @@ Minecraft for Windows kurulumu Microsoft Store veya Xbox üzerinden tamamlanır.
 
 Ana ekrandaki **Modloader’ı kur** düğmesi, onayından sonra modloader’ı Minecraft Content klasörüne indirir. **Modlar** sayfasından yerel DLL dosyalarını ekleyebilirsin.
 
+Seçili Minecraft veya Cinnabar çalışırken ana ekranda **Normal kapat** ve **Zorla kapat** görünür. Zorla kapatma onay ister.
+
 ## Ayarlar ve yedekleme
 
+- Gelişmiş ayarlardaki **Kurulum klasörleri** penceresinde **Minecraft AppData** kısayolu var. **Klasörü sil** işleminden önce onay istenir. AppData silinirse dünyalar, paketler ve ayarlar da kaldırılabilir.
 - **Özelleştirme** penceresinden parlama, animasyonlar, tıklama sesi, RAM göstergesi ve sistem tepsisi davranışını ayarlayabilirsin. Tıklama sesi ve kaynak göstergeleri yeni kurulumlarda kapalı gelir.
 - **Özelleştirme → Launcher Ayarları** bölümünde görev çubuğu simgesini ve düğme biçimini seçebilirsin. Yuvarlak ve kare biçimler seçildiği anda görünür. **Vazgeç** önceki biçimi geri getirir.
 - Kurulum sihirbazını gelişmiş ayarlardaki **Kısayollar** üzerinden tekrar başlatabilirsin.
@@ -87,14 +90,14 @@ Windows x64 kurulum paketi üretmek için **Inno Setup 6** gerekir. Gerekirse ko
 .\installer\build.ps1 -IsccPath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 ```
 
-Kurulum EXE’si **installer-output** klasörüne, bağımsız uygulama dosyaları **installer-payload-v0.18.2** klasörüne çıkar.
+Kurulum EXE’si **installer-output** klasörüne, bağımsız uygulama dosyaları **installer-payload-v0.18.3** klasörüne çıkar.
 
 ### Testler
 
 ```powershell
 dotnet run --project .\tests\PackLibrary.Tests -c Release
 dotnet run --project .\tests\BedrockServers.Tests -c Release
-dotnet run --project .\tests\ReleaseUpdates.Tests -c Release -- .\installer-payload-v0.18.2\BedrockLoader.exe
+dotnet run --project .\tests\ReleaseUpdates.Tests -c Release -- .\installer-payload-v0.18.3\BedrockLoader.exe
 ```
 
 Güncelleyici testi için önce kurulum derleme betiğini çalıştır. Test, verilen EXE’yi çalıştırmadan dosya doğrulamasında kullanır.

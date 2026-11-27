@@ -1,5 +1,5 @@
 #ifndef PayloadDir
-  #define PayloadDir "..\installer-payload-v0.18.2"
+  #define PayloadDir "..\installer-payload-v0.18.3"
 #endif
 #ifndef ProjectDir
   #define ProjectDir "..\BedrockLoader"
@@ -8,8 +8,8 @@
 [Setup]
 AppId={{7B8B8A23-6749-4C7D-9D23-420A29B0F11B}
 AppName=BedrockLoader
-AppVersion=0.18.2
-AppVerName=BedrockLoader v0.18.2
+AppVersion=0.18.3
+AppVerName=BedrockLoader v0.18.3
 AppPublisher=Kokluk
 AppPublisherURL=https://github.com/kokluk/Bedrockloader
 AppSupportURL=https://github.com/kokluk/Bedrockloader/issues
@@ -22,8 +22,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 LicenseFile={#ProjectDir}\LICENSE
 OutputDir=..\installer-output
-OutputBaseFilename=BedrockLoader-Setup-v0.18.2-x64
-VersionInfoVersion=0.18.2.0
+OutputBaseFilename=BedrockLoader-Setup-v0.18.3-x64
+VersionInfoVersion=0.18.3.0
 SetupIconFile={#ProjectDir}\Assets\BedrockLoader.ico
 UninstallDisplayIcon={app}\BedrockLoader.exe
 WizardStyle=modern dynamic windows11 hidebevels includetitlebar

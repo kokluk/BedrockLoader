@@ -161,12 +161,20 @@ public sealed partial class MainForm
         shortcuts.Controls.Add(installedChannel);
         layout.Controls.Add(shortcuts, 0, 2);
         page.Controls.Add(layout);
+        var closeActions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 45, WrapContents = false, Tag = "page", Visible = false };
+        var closeGame = MakeButton(T("Close normally", "Normal kapat"), () => CloseSelectedGame(force: false), 116);
+        var forceCloseGame = MakeButton(T("Force close", "Zorla kapat"), () => CloseSelectedGame(force: true), 112);
+        forceCloseGame.Tag = "danger";
+        closeActions.Controls.AddRange([closeGame, forceCloseGame]);
+        page.Controls.Add(closeActions);
+        Action refreshCloseActions = WatchHomeGame(page, closeActions);
         contentHost.Controls.Add(page);
         toggle.Click += (_, _) => { toggle.Spin(); cinnabarMode = !cinnabarMode; UpdateHomeMode(); };
         UpdateHomeMode();
 
         void UpdateHomeMode()
         {
+            refreshCloseActions();
             toggle.Text = cinnabarMode ? "Minecraft" : "Cinnabar";
             layout.SuspendLayout();
             if (cinnabarMode) RefreshCinnabarButton();
